@@ -93,7 +93,7 @@ dbt-scribe/
 │   └── workflows/
 │       └── ci.yml                      # ruff + mypy + pytest on push and PR
 ├── pyproject.toml                      # Package metadata, dependencies, CLI entry point, ruff config
-├── README.md                           # User-facing documentation (written in Phase 2)
+├── README.md                           # MVP overview, CI badge, and quickstart commands
 ├── CHANGELOG.md                        # Version history (written at first release)
 ├── CONTEXT.md                          # Project overview for contributors and AI assistants
 ├── DECISIONS.md                        # Architectural decision records (ADRs)

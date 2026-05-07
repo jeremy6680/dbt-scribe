@@ -1,11 +1,17 @@
 # NEXT_STEPS.md — dbt-scribe
 
-## Current phase: Phase 1 — Working MVP
+## Current phase: Phase 1 — Working MVP complete
 
 **Goal:** End-to-end generation on a single model using the manifest, with the
 `docs`, `tests`, and `generate` commands. Tested against a real dbt project.
 
 **Test project:** `/Users/jeremymarchandeau/Code/personal/learning/databird-dbt-exercices/exercice_bonus_module_3/`
+
+**Status:** The code-complete MVP is implemented and covered by fixture-based tests
+that do not require dbt, a warehouse, or live LLM calls. One manual validation item
+remains before calling the project release-ready: run the tool against the external
+dbt exercise project in an environment where `dbt` is installed and the project has
+its own `dbt-scribe.yml`.
 
 ---
 
@@ -191,9 +197,13 @@ mocked providers/generators; no dbt, warehouse, or LLM calls are required.
   - Run `dbt compile` in the test project first
   - Run `dbt-scribe generate --target models/ --dry-run`
   - Verify output is valid YAML and valid dbt syntax
-- [ ] `tests/` — integration test using the fixture dbt project + fixture manifest
-- [ ] `.github/workflows/ci.yml` — ruff + pytest on push/PR
-- [ ] Coverage badge in README
+- [x] `tests/` — integration test using the fixture dbt project + fixture manifest
+- [x] `.github/workflows/ci.yml` — ruff + pytest on push/PR
+- [x] CI status badge in README
+
+**Validation:** 67 pytest tests passing and `ruff check .` passing. The external
+dbt project end-to-end run was not completed in this environment because `dbt` was
+not available and the external project did not yet contain `dbt-scribe.yml`.
 
 ---
 
