@@ -120,23 +120,26 @@ and do not make network calls.
 
 ---
 
-### Step 07 — Generators + prompts `step/07-generators`
+### Step 07 — Generators + prompts `step/07-generators` ✅
 
-- [ ] `dbt_scribe/prompts/docs_staging.j2`
-- [ ] `dbt_scribe/prompts/docs_intermediate.j2`
-- [ ] `dbt_scribe/prompts/docs_mart.j2`
-- [ ] `dbt_scribe/prompts/tests_generic.j2`
-- [ ] `dbt_scribe/generators/docs_generator.py`
+- [x] `dbt_scribe/prompts/docs_staging.j2`
+- [x] `dbt_scribe/prompts/docs_intermediate.j2`
+- [x] `dbt_scribe/prompts/docs_mart.j2`
+- [x] `dbt_scribe/prompts/tests_generic.j2`
+- [x] `dbt_scribe/generators/docs_generator.py`
   - `generate_docs(model: EnrichedModel, provider: LLMProvider, config: ScribeConfig) -> DocsResult`
   - `DocsResult` dataclass: model_description, docs_block_content, columns dict
-- [ ] `dbt_scribe/generators/tests_generator.py`
+- [x] `dbt_scribe/generators/tests_generator.py`
   - `generate_tests(model: EnrichedModel, provider: LLMProvider, config: ScribeConfig) -> TestsResult`
   - `TestsResult` dataclass: columns dict with test lists
-- [ ] JSON response parsing + validation (raise on malformed JSON)
-- [ ] `tests/test_docs_generator.py` — mocked provider, verify output structure,
+- [x] JSON response parsing + validation (raise on malformed JSON)
+- [x] `tests/test_docs_generator.py` — mocked provider, verify output structure,
       verify mart template is applied, verify shared columns are handled
-- [ ] `tests/test_tests_generator.py` — mocked provider, verify named tests, verify
+- [x] `tests/test_tests_generator.py` — mocked provider, verify named tests, verify
       PK always gets unique+not_null, verify placeholder accepted_values
+
+**Validation:** 48 pytest tests passing. Generator tests use mocked providers and
+do not make network calls.
 
 ---
 

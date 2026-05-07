@@ -37,8 +37,8 @@ dbt-scribe/
 │   │   │   ├── anthropic_provider.py   # Anthropic Claude — uses ANTHROPIC_API_KEY
 │   │   │   ├── openai_provider.py      # OpenAI GPT — uses OPENAI_API_KEY
 │   │   │   └── google_provider.py      # Google Gemini — uses GOOGLE_API_KEY
-│   │   ├── docs_generator.py           # Calls LLM to generate descriptions + docs blocks
-│   │   └── tests_generator.py          # Calls LLM to generate generic tests YAML
+│   │   ├── docs_generator.py           # Renders docs prompts + parses DocsResult JSON
+│   │   └── tests_generator.py          # Renders test prompts + parses TestsResult JSON
 │   │
 │   ├── writers/
 │   │   ├── __init__.py
@@ -52,7 +52,7 @@ dbt-scribe/
 │   └── prompts/                        # Jinja2 prompt templates — one per layer × generation type
 │       ├── docs_staging.j2             # Docs prompt for staging models
 │       ├── docs_intermediate.j2        # Docs prompt for intermediate models
-│       ├── docs_mart.j2                # Docs prompt for mart models (includes four-section template)
+│       ├── docs_mart.j2                # Docs prompt for mart models (four-section template)
 │       ├── tests_generic.j2            # Generic tests prompt (all layers)
 │       └── tests_singular.j2           # Singular tests prompt (marts only — Phase 2)
 │
@@ -179,6 +179,19 @@ Retry logic (3 attempts, exponential backoff) lives here and is inherited by all
 Tests Anthropic, OpenAI, and Google provider adapters with fake SDK clients. These
 tests verify request wiring and normalized `LLMResponse` output without making any
 network calls.
+
+### `dbt_scribe/generators/docs_generator.py`
+
+Renders the layer-specific documentation prompt (`staging`, `intermediate`, or
+`marts`), calls the configured `LLMProvider`, and parses strict JSON into a
+`DocsResult`. Mart prompts require the four-section documentation template.
+
+### `dbt_scribe/generators/tests_generator.py`
+
+Renders the generic tests prompt, calls the configured `LLMProvider`, and parses
+strict JSON into a `TestsResult`. It also applies deterministic safeguards for
+generic tests: primary-key columns receive `not_null` and `unique`, and enum
+columns receive an `accepted_values` placeholder if the LLM omits one.
 
 ### `dbt_scribe/writers/yaml_writer.py`
 
