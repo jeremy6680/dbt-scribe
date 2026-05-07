@@ -57,7 +57,6 @@ dbt-scribe/
 │       └── tests_singular.j2           # Singular tests prompt (marts only — Phase 2)
 │
 ├── tests/                              # pytest test suite for dbt-scribe itself
-│   ├── conftest.py                     # Shared fixtures (config, provider mocks, sample nodes)
 │   ├── fixtures/
 │   │   └── dbt_project/                # Minimal dbt project used as test input
 │   │       ├── dbt_project.yml
@@ -85,6 +84,7 @@ dbt-scribe/
 │   ├── test_tests_generator.py
 │   ├── test_yaml_writer.py
 │   ├── test_docs_writer.py
+│   ├── test_integration_pipeline.py
 │   └── test_coverage.py
 │
 ├── .env.example                        # Documents all supported API key variables
