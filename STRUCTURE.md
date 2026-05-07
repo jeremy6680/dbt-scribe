@@ -18,7 +18,7 @@ dbt-scribe/
 │   ├── cli.py                          # Click entry point — all commands + bootstrap validation
 │   ├── config.py                       # Pydantic models for dbt-scribe.yml + provider resolution
 │   ├── resolver.py                     # Resolves --target (file / dir / project) → list of nodes
-│   ├── analyzer.py                     # Layer detection, column type inference, EnrichedModel builder
+│   ├── analyzer.py                     # Layer/column typing + EnrichedModel/EnrichedColumn builder
 │   │
 │   ├── parsers/
 │   │   ├── __init__.py
@@ -148,6 +148,9 @@ description, including a `{{ doc(...) }}` reference, as already filled.
 ### `dbt_scribe/analyzer.py`
 
 Takes a `ManifestNode` and produces an `EnrichedModel` with typed columns.
+The enriched model combines manifest metadata, existing YAML documentation/tests,
+compiled SQL expressions, and `needs_doc` / `needs_tests` flags used by later
+generation and writer steps.
 
 Layer detection uses the `fqn` from the manifest (e.g.,
 `["project", "staging", "api_sports", "stg_api_sports__fixtures"]` → `staging`).
@@ -158,6 +161,9 @@ Column type inference applies, in priority order:
 3. Name heuristics (`is_`/`has_`/`did_` → boolean, `_at`/`_date` → timestamp)
 4. SQL expression heuristics (aggregation functions → metric, arithmetic → calculated)
 5. Default: `text`
+
+Compiled SQL expressions are extracted with `sqlglot`; raw `.sql` files remain out
+of scope per ADR-007.
 
 ### `dbt_scribe/generators/base_generator.py`
 

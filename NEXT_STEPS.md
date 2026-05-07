@@ -86,9 +86,9 @@ fixture YAML and do not require dbt or a warehouse.
 
 ---
 
-### Step 05 — Analyzer `step/05-analyzer`
+### Step 05 — Analyzer `step/05-analyzer` ✅
 
-- [ ] `dbt_scribe/analyzer.py`
+- [x] `dbt_scribe/analyzer.py`
   - `detect_layer(fqn: list[str], config: ConventionsConfig) -> Layer`
     — uses fqn[1] path prefix matching against configured layer prefixes
   - `infer_column_type(column_name: str, sql_expression: str | None, config: TestsConfig) -> ColumnType`
@@ -96,9 +96,12 @@ fixture YAML and do not require dbt or a warehouse.
     (boolean prefixes `is_`/`has_`/`did_`, timestamp suffixes `_at`/`_date`,
     metric/calculated if sql_expression is non-null and contains aggregation or arithmetic)
   - `build_enriched_model(node: ManifestNode, yaml_model: YamlModel | None, config: ScribeConfig) -> EnrichedModel`
-  - `EnrichedModel`, `EnrichedColumn` dataclasses (as specified in CDC §8.5)
-- [ ] `tests/test_analyzer.py` — layer detection from fqn, all ColumnType variants,
+  - `EnrichedModel`, `EnrichedColumn`, `Layer`, and `ColumnType`
+- [x] `tests/test_analyzer.py` — layer detection from fqn, all ColumnType variants,
       `needs_doc` / `needs_tests` flags respect `overwrite_existing`
+
+**Validation:** 38 pytest tests passing. Analyzer tests use only checked-in
+manifest/YAML fixtures and do not require dbt or a warehouse.
 
 ---
 
