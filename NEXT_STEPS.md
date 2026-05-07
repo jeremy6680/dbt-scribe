@@ -143,25 +143,28 @@ do not make network calls.
 
 ---
 
-### Step 08 — Writers `step/08-writers`
+### Step 08 — Writers `step/08-writers` ✅
 
-- [ ] `dbt_scribe/writers/yaml_writer.py`
+- [x] `dbt_scribe/writers/yaml_writer.py`
   - `write_yaml(model: EnrichedModel, docs_result: DocsResult, tests_result: TestsResult, config: ScribeConfig, dry_run: bool) -> WriterResult`
   - Mode detection: create from scratch if no `.yml` exists, merge otherwise
   - Creation: canonical structure (ordered sections, section comments, persist_docs
     conditional on layer, tags from fqn)
   - Merge: non-destructive (respect `is_description_set`, never delete existing tests)
   - `--force` flag bypasses `is_description_set` guard
-- [ ] `dbt_scribe/writers/docs_writer.py`
+- [x] `dbt_scribe/writers/docs_writer.py`
   - `write_docs_block(model: EnrichedModel, docs_result: DocsResult, config: ScribeConfig, dry_run: bool) -> WriterResult`
   - Appends new `{% docs %}` blocks to the correct `*__docs.md` file
   - Creates the file if it does not exist
   - Does not duplicate blocks that already exist (checks by block name)
-- [ ] `tests/test_yaml_writer.py` — create from scratch (verify structure), merge
+- [x] `tests/test_yaml_writer.py` — create from scratch (verify structure), merge
       without force (existing descriptions preserved), merge with force (descriptions
       overwritten), existing tests never deleted, `doc()` refs preserved
-- [ ] `tests/test_docs_writer.py` — new file created, existing file appended,
+- [x] `tests/test_docs_writer.py` — new file created, existing file appended,
       duplicate block not written twice
+
+**Validation:** 56 pytest tests passing. Writer tests operate on copied fixture
+projects and do not require dbt or a warehouse.
 
 ---
 

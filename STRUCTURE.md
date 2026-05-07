@@ -195,17 +195,22 @@ columns receive an `accepted_values` placeholder if the LLM omits one.
 
 ### `dbt_scribe/writers/yaml_writer.py`
 
-The most complex writer. Two modes:
+Writes model YAML files and returns a `WriterResult` with path, changed flag, and
+rendered content. Two modes:
 
 **Create from scratch** (no `.yml` exists):
-Generates a complete, canonical YAML file with section comments, columns ordered by
-type (PK → FK → timestamps → enums → metrics/calculated → shared), `persist_docs`
-for staging and marts only, and tags inferred from the manifest `fqn`.
+Generates a YAML file for the model path derived from `ManifestNode.path`.
 
 **Merge** (`.yml` exists):
 Uses `is_description_set()` to determine what can be overwritten. Existing filled
 descriptions (including `{{ doc("...") }}` references) are preserved unless `--force`.
 Existing tests are never deleted; only missing tests are appended.
+
+### `dbt_scribe/writers/docs_writer.py`
+
+Writes long-form dbt docs blocks and returns a `WriterResult`. It creates the
+appropriate `*__docs.md` file if missing, appends new `{% docs %}` blocks to
+existing files, and skips writes when a block for the model already exists.
 
 ### `tests/fixtures/dbt_project/target/manifest.json`
 
