@@ -100,7 +100,7 @@ class ScribeConfig(BaseModel):
     cache: CacheConfig = CacheConfig()
 
     @model_validator(mode="after")
-    def check_api_key_present(self) -> "ScribeConfig":
+    def check_api_key_present(self) -> ScribeConfig:
         env_var = self.llm.api_key_env_var
         if not os.environ.get(env_var):
             raise ConfigError(
@@ -141,7 +141,7 @@ def load_config(path: Path | str, *, check_api_key: bool = True) -> ScribeConfig
         raise ConfigError(f"Invalid configuration in {path}: {exc}") from exc
 
 
-def resolve_provider(config: ScribeConfig) -> "LLMProvider":
+def resolve_provider(config: ScribeConfig) -> LLMProvider:
     from dbt_scribe.generators.providers.anthropic_provider import AnthropicProvider
     from dbt_scribe.generators.providers.google_provider import GoogleProvider
     from dbt_scribe.generators.providers.openai_provider import OpenAIProvider
