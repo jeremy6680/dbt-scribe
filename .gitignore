@@ -40,6 +40,10 @@ htmlcov/
 # LLM response cache — keyed on compiled SQL + config fingerprint
 .dbt-scribe-cache/
 
+# DuckDB files from test projects
+*.duckdb
+*.duckdb.wal
+
 # ── Environment / secrets ─────────────────────────────────────────────────────
 .env
 .env.local
