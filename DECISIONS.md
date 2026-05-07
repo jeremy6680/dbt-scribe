@@ -20,11 +20,15 @@ prompts (structured JSON, temperature 0.2), making the abstraction natural.
 
 **Providers:**
 
-| Provider             | Default model              | Environment variable  |
-|----------------------|----------------------------|-----------------------|
-| `anthropic` (default)| `claude-sonnet-4-20250514` | `ANTHROPIC_API_KEY`   |
-| `openai`             | `gpt-4o`                   | `OPENAI_API_KEY`      |
-| `google`             | `gemini-2.5-pro`           | `GOOGLE_API_KEY`      |
+| Provider             | Default model              | Environment variable  | SDK package      |
+|----------------------|----------------------------|-----------------------|------------------|
+| `anthropic` (default)| `claude-sonnet-4-20250514` | `ANTHROPIC_API_KEY`   | `anthropic`      |
+| `openai`             | `gpt-4o`                   | `OPENAI_API_KEY`      | `openai`         |
+| `google`             | `gemini-2.5-pro`           | `GOOGLE_API_KEY`      | `google-genai`   |
+
+**Note on Google SDK:** The originally planned `google-generativeai` package was
+deprecated before implementation. The `google-genai` package (Google's replacement,
+`from google import genai`) is used instead. The interface is functionally equivalent.
 
 **Consequence:** Three SDK dependencies instead of one. All three are installed by
 default; optional extras may be introduced in V2 if package size becomes a concern.
