@@ -1,1 +1,32 @@
-{# Docs generation prompt for mart models (includes four-section template) #}
+Generate dbt documentation for the mart model `{{ model.name }}`.
+
+Use the four-section mart documentation template in `docs_block_content`:
+1. `## Grain`
+2. `## Sources`
+3. `## Business Logic`
+4. `## Usage Notes`
+
+Return a JSON object with exactly these top-level keys:
+- `model_description`: concise one-sentence model description
+- `docs_block_content`: longer markdown docs block content following the four-section mart documentation template
+- `columns`: object mapping column names to descriptions
+
+Model context:
+- unique_id: {{ model.unique_id }}
+- fqn: {{ model.fqn | join(".") }}
+- layer: {{ model.layer.value }}
+- materialized: {{ model.materialized }}
+- upstream nodes: {{ model.depends_on_nodes | join(", ") }}
+
+Columns:
+{% for column in model.columns.values() %}
+- {{ column.name }} ({{ column.data_type or "unknown" }}, {{ column.column_type.value }})
+  existing description: {{ column.description or "" }}
+  needs_doc: {{ column.needs_doc }}
+  sql_expression: {{ column.sql_expression or "" }}
+{% endfor %}
+
+Compiled SQL:
+```sql
+{{ model.compiled_code }}
+```
