@@ -53,17 +53,20 @@
 
 ---
 
-### Step 03 — Manifest parser `step/03-manifest-parser`
+### Step 03 — Manifest parser `step/03-manifest-parser` ✅
 
-- [ ] `dbt_scribe/parsers/manifest_parser.py`
+- [x] `dbt_scribe/parsers/manifest_parser.py`
   - `parse_manifest(manifest_path) -> list[ManifestNode]`
   - Extracts per node: `unique_id`, `name`, `fqn`, `resource_type`, `compiled_code`,
     `columns` (name + data_type + description), `depends_on.nodes`, `config` (tags,
     materialized), `path`, adapter type from `metadata.adapter_type`
-  - `ManifestNode` dataclass
+  - `ManifestNode` and `ManifestColumn` dataclasses
   - Filters to `resource_type == "model"` only
-- [ ] `tests/test_manifest_parser.py` — parse fixture manifest, verify node count,
+- [x] `tests/test_manifest_parser.py` — parse fixture manifest, verify node count,
       verify compiled SQL is present, verify columns extracted, verify fqn
+
+**Validation:** 29 pytest tests passing. Manifest parser tests use only
+`tests/fixtures/dbt_project/target/manifest.json`; no dbt or warehouse dependency.
 
 ---
 

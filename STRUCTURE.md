@@ -23,6 +23,7 @@ dbt-scribe/
 │   ├── parsers/
 │   │   ├── __init__.py
 │   │   ├── manifest_parser.py          # Reads target/manifest.json → ManifestNode list
+│   │   │                               # ManifestNode + ManifestColumn dataclasses
 │   │   │                               # Extracts: compiled SQL, columns, fqn, lineage, adapter
 │   │   └── yaml_parser.py              # Reads existing .yml files → YamlModel
 │   │                                   # Detects filled descriptions incl. {{ doc("...") }} refs
@@ -127,6 +128,9 @@ The most important parser. Reads `target/manifest.json` and extracts everything
 - Fully-qualified node name (`fqn`) — used for layer detection and tag inference
 - `depends_on.nodes` — upstream lineage for FK inference
 - `metadata.adapter_type` — DuckDB / BigQuery / PostgreSQL
+
+It returns model nodes only (`resource_type == "model"`) as `ManifestNode`
+instances, with each column represented by a `ManifestColumn`.
 
 Raw `.sql` files are never read directly (see ADR-007 and ADR-009).
 
