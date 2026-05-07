@@ -1,1 +1,25 @@
-{# Generic tests prompt (all layers) #}
+Generate dbt generic tests for the model `{{ model.name }}`.
+
+Return a JSON object with exactly one top-level key:
+- `columns`: object mapping column names to lists of dbt generic tests
+
+Rules:
+- Use named tests.
+- Primary keys should have `not_null` and `unique`.
+- Enum columns should use `accepted_values`; use an empty `values` list when the allowed values are unknown.
+- Foreign keys may use `relationships` when the upstream target is clear.
+- Do not include tests for columns where `needs_tests` is false.
+
+Model context:
+- unique_id: {{ model.unique_id }}
+- fqn: {{ model.fqn | join(".") }}
+- layer: {{ model.layer.value }}
+- upstream nodes: {{ model.depends_on_nodes | join(", ") }}
+
+Columns:
+{% for column in model.columns.values() %}
+- {{ column.name }} ({{ column.data_type or "unknown" }}, {{ column.column_type.value }})
+  existing tests: {{ column.tests }}
+  needs_tests: {{ column.needs_tests }}
+  sql_expression: {{ column.sql_expression or "" }}
+{% endfor %}
