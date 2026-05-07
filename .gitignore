@@ -60,3 +60,6 @@ Thumbs.db
 
 # ── Misc ──────────────────────────────────────────────────────────────────────
 *.log
+
+# Claude Code local settings
+.claude/
