@@ -112,7 +112,15 @@ Entry point for all CLI commands. Responsibilities:
 - Runs the bootstrap check before every command except `init`
   (validates `dbt_project.yml`, `target/manifest.json`, `dbt-scribe.yml` in CWD)
 - Commands: `init`, `docs`, `tests`, `generate`, `audit`
-- Passes `--dry-run`, `--force`, `--target`, `--config` options down to the pipeline
+- Wires the main pipeline: config → manifest parsing → target resolution →
+  YAML parsing → analyzer → generators → writers
+- Supports `--target`, `--dry-run`, and `--force` for generation commands
+- `audit` reports per-model documentation and test coverage without generation
+
+### `dbt_scribe/resolver.py`
+
+Resolves `--target` values against manifest nodes. Supports project-root targets,
+model directories, individual `.sql` model files, and matching `.yml` files.
 
 ### `dbt_scribe/config.py`
 

@@ -168,17 +168,20 @@ projects and do not require dbt or a warehouse.
 
 ---
 
-### Step 09 — Wire up CLI commands `step/09-cli-commands`
+### Step 09 — Wire up CLI commands `step/09-cli-commands` ✅
 
-- [ ] `dbt-scribe docs --target <path>` — full pipeline: resolve → parse → analyze →
+- [x] `dbt-scribe docs --target <path>` — full pipeline: resolve → parse → analyze →
       generate docs → write YAML + docs.md
-- [ ] `dbt-scribe tests --target <path>` — full pipeline: → generate tests → write YAML
-- [ ] `dbt-scribe generate --target <path>` — docs + tests in one pass
-- [ ] `dbt-scribe audit --target <path>` — coverage report (table format), no generation
-- [ ] Resolver: file / directory / project root
-- [ ] `--dry-run` works across all commands
-- [ ] `--force` works across all commands
-- [ ] Rich output: per-model status lines, summary table
+- [x] `dbt-scribe tests --target <path>` — full pipeline: → generate tests → write YAML
+- [x] `dbt-scribe generate --target <path>` — docs + tests in one pass
+- [x] `dbt-scribe audit --target <path>` — coverage report (table format), no generation
+- [x] Resolver: file / directory / project root
+- [x] `--dry-run` works across all commands
+- [x] `--force` works across all commands
+- [x] Rich output: per-model status lines, summary table
+
+**Validation:** 66 pytest tests passing. CLI tests use copied fixture projects and
+mocked providers/generators; no dbt, warehouse, or LLM calls are required.
 
 ---
 
