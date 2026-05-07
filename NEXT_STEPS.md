@@ -11,35 +11,45 @@
 
 ## Steps
 
-### Step 01 — Project scaffolding `step/01-scaffolding`
+### Step 01 — Project scaffolding `step/01-scaffolding` ✅
 
-- [ ] `pyproject.toml` — packaging, dependencies, CLI entry point (`dbt-scribe`)
-- [ ] `dbt_scribe/__init__.py`
-- [ ] Empty module stubs for all packages (parsers, generators, writers)
-- [ ] `.env.example`
-- [ ] `.gitignore` (add `.dbt-scribe-cache/`, `.env`, `*.duckdb`, `dist/`, `__pycache__/`)
-- [ ] `tests/conftest.py` (empty)
-- [ ] `tests/fixtures/dbt_project/` — minimal dbt project with pre-generated `manifest.json`
-- [ ] Verify `pip install -e .` works and `dbt-scribe --help` is reachable
+- [x] `pyproject.toml` — packaging, dependencies, CLI entry point (`dbt-scribe`)
+- [x] `dbt_scribe/__init__.py`
+- [x] Empty module stubs for all packages (parsers, generators, writers)
+- [x] `.env.example`
+- [x] `.gitignore` (add `.dbt-scribe-cache/`, `.env`, `*.duckdb`, `dist/`, `__pycache__/`)
+- [x] `tests/conftest.py` (empty)
+- [x] `tests/fixtures/dbt_project/` — minimal dbt project with pre-generated `manifest.json`
+- [x] Verify `pip install -e .` works and `dbt-scribe --help` is reachable
 
 ---
 
-### Step 02 — Config + Bootstrap `step/02-config-bootstrap`
+### Step 02 — Config + Bootstrap `step/02-config-bootstrap` ✅
 
-- [ ] `dbt_scribe/config.py`
-  - Pydantic models: `LLMConfig`, `GenerationConfig`, `DocsConfig`, `TestsConfig`,
+- [x] `dbt_scribe/config.py`
+  - Pydantic models: `LLMConfig`, `DocsConfig`, `TestsConfig`,
     `CoverageConfig`, `ConventionsConfig`, `CacheConfig`, `ScribeConfig`
   - `load_config(path) -> ScribeConfig`
   - `resolve_provider(config) -> LLMProvider`
-- [ ] `dbt_scribe/cli.py`
+- [x] `dbt_scribe/cli.py`
   - Click group `dbt-scribe`
-  - Bootstrap check (CWD validation) as a shared `before_invoke` or decorator:
-    validates `dbt_project.yml`, `target/manifest.json`, `dbt-scribe.yml`
-  - Skeleton commands: `docs`, `tests`, `generate` (each prints "not yet implemented")
-  - `init` command — generates `dbt-scribe.yml` from `dbt_project.yml`
-- [ ] `tests/test_config.py` — valid config loads, missing keys use defaults, bad
-      provider raises `ConfigError`, missing API key raises `ConfigError`
-- [ ] `tests/test_bootstrap.py` — correct CWD passes, missing files raise `BootstrapError`
+  - Bootstrap check `_bootstrap(cwd)` raises `BootstrapError` if any of the three
+    required files are missing; all commands except `init` call it
+  - Skeleton commands: `docs`, `tests`, `generate`, `audit` (each raises ClickException)
+  - `init` command — writes default `dbt-scribe.yml` template
+- [x] `tests/test_config.py` — 18 tests: valid config loads, missing keys use defaults,
+      bad provider raises `ConfigError`, missing API key raises `ConfigError`,
+      `resolve_provider` returns the correct class for all three providers
+- [x] `tests/test_bootstrap.py` — 7 tests: correct CWD passes, each missing file raises
+      `BootstrapError` with a contextual hint, all-missing lists all three
+
+**Also completed as part of Step 02** (originally planned for Step 06):
+- [x] `dbt_scribe/generators/base_generator.py` — `LLMProvider` ABC + `LLMResponse`
+      dataclass + 3-attempt exponential backoff retry in `complete()`
+- [x] `dbt_scribe/generators/providers/anthropic_provider.py` — full implementation
+- [x] `dbt_scribe/generators/providers/openai_provider.py` — full implementation
+- [x] `dbt_scribe/generators/providers/google_provider.py` — full implementation
+      (uses `google-genai` SDK, not the deprecated `google-generativeai`)
 
 ---
 
@@ -86,15 +96,13 @@
 
 ---
 
-### Step 06 — LLM providers `step/06-llm-providers`
+### Step 06 — LLM providers `step/06-llm-providers` (partially done)
 
-- [ ] `dbt_scribe/generators/base_generator.py`
-  - `LLMResponse` dataclass
-  - `LLMProvider` abstract base class with `complete(system, user) -> LLMResponse`
-- [ ] `dbt_scribe/generators/providers/anthropic_provider.py` — full implementation
-- [ ] `dbt_scribe/generators/providers/openai_provider.py` — full implementation
-- [ ] `dbt_scribe/generators/providers/google_provider.py` — full implementation
-- [ ] Retry logic (3 attempts, exponential backoff) in base class or mixin
+- [x] `dbt_scribe/generators/base_generator.py` — completed in Step 02
+- [x] `dbt_scribe/generators/providers/anthropic_provider.py` — completed in Step 02
+- [x] `dbt_scribe/generators/providers/openai_provider.py` — completed in Step 02
+- [x] `dbt_scribe/generators/providers/google_provider.py` — completed in Step 02
+- [x] Retry logic (3 attempts, exponential backoff) in `LLMProvider.complete()` — completed in Step 02
 - [ ] `tests/test_providers.py` — all three providers tested with mocked HTTP responses;
       verify `LLMResponse` is normalized identically regardless of provider
 
