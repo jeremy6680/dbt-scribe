@@ -12,7 +12,6 @@ class AnthropicProvider(LLMProvider):
         self._client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
     def _complete(self, system: str, user: str) -> LLMResponse:
-        import anthropic
         msg = self._client.messages.create(
             model=self.model,
             max_tokens=4096,
