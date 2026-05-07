@@ -1,11 +1,19 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import click
 
 from dbt_scribe import __version__
+from dbt_scribe.analyzer import build_enriched_model
+from dbt_scribe.config import ScribeConfig, load_config, resolve_provider
+from dbt_scribe.generators.docs_generator import DocsResult, generate_docs
+from dbt_scribe.generators.tests_generator import TestsResult, generate_tests
+from dbt_scribe.parsers.manifest_parser import ManifestNode, parse_manifest
+from dbt_scribe.parsers.yaml_parser import is_description_set, parse_yaml
+from dbt_scribe.resolver import resolve_target
+from dbt_scribe.writers.docs_writer import write_docs_block
+from dbt_scribe.writers.yaml_writer import write_yaml
 
 _REQUIRED_FILES = ["dbt_project.yml", "target/manifest.json", "dbt-scribe.yml"]
 
@@ -97,11 +105,22 @@ def init() -> None:
 @click.option("--force", is_flag=True, help="Overwrite existing descriptions.")
 def docs(target: str, dry_run: bool, force: bool) -> None:
     """Generate model and column documentation."""
-    try:
-        _bootstrap()
-    except BootstrapError as exc:
-        raise click.ClickException(str(exc)) from exc
-    raise click.ClickException("not yet implemented")
+    config, nodes = _load_project(target)
+    provider = resolve_provider(config)
+    for node in nodes:
+        model = _build_model(node, config, overwrite_existing=force)
+        docs_result = generate_docs(model, provider, config)
+        yaml_result = write_yaml(
+            model,
+            docs_result,
+            TestsResult(columns={}),
+            config,
+            dry_run,
+            force=force,
+        )
+        docs_block_result = write_docs_block(model, docs_result, config, dry_run)
+        _echo_status("docs", model.name, dry_run, yaml_result.changed or docs_block_result.changed)
+    _echo_summary("docs", nodes, dry_run)
 
 
 @cli.command()
@@ -110,11 +129,21 @@ def docs(target: str, dry_run: bool, force: bool) -> None:
 @click.option("--force", is_flag=True, help="Overwrite existing tests.")
 def tests(target: str, dry_run: bool, force: bool) -> None:
     """Generate generic YAML tests."""
-    try:
-        _bootstrap()
-    except BootstrapError as exc:
-        raise click.ClickException(str(exc)) from exc
-    raise click.ClickException("not yet implemented")
+    config, nodes = _load_project(target)
+    provider = resolve_provider(config)
+    for node in nodes:
+        model = _build_model(node, config, overwrite_existing=force)
+        tests_result = generate_tests(model, provider, config)
+        yaml_result = write_yaml(
+            model,
+            DocsResult(model_description=model.description or "", docs_block_content="", columns={}),
+            tests_result,
+            config,
+            dry_run,
+            force=force,
+        )
+        _echo_status("tests", model.name, dry_run, yaml_result.changed)
+    _echo_summary("tests", nodes, dry_run)
 
 
 @cli.command()
@@ -123,19 +152,89 @@ def tests(target: str, dry_run: bool, force: bool) -> None:
 @click.option("--force", is_flag=True, help="Overwrite existing documentation and tests.")
 def generate(target: str, dry_run: bool, force: bool) -> None:
     """Generate documentation and tests in one pass."""
-    try:
-        _bootstrap()
-    except BootstrapError as exc:
-        raise click.ClickException(str(exc)) from exc
-    raise click.ClickException("not yet implemented")
+    config, nodes = _load_project(target)
+    provider = resolve_provider(config)
+    for node in nodes:
+        model = _build_model(node, config, overwrite_existing=force)
+        docs_result = generate_docs(model, provider, config)
+        tests_result = generate_tests(model, provider, config)
+        yaml_result = write_yaml(
+            model,
+            docs_result,
+            tests_result,
+            config,
+            dry_run,
+            force=force,
+        )
+        docs_block_result = write_docs_block(model, docs_result, config, dry_run)
+        _echo_status("generate", model.name, dry_run, yaml_result.changed or docs_block_result.changed)
+    _echo_summary("generate", nodes, dry_run)
 
 
 @cli.command()
 @click.option("--target", default="models/", help="File, directory, or project root to audit.")
 def audit(target: str) -> None:
     """Show documentation and test coverage report."""
+    config, nodes = _load_project(target, check_api_key=False)
+    click.echo("Audit summary")
+    for node in nodes:
+        model = _build_model(node, config)
+        total_columns = len(model.columns)
+        documented_columns = sum(
+            1 for column in model.columns.values() if is_description_set(column.description)
+        )
+        tested_columns = sum(1 for column in model.columns.values() if column.tests)
+        doc_coverage = _percentage(documented_columns, total_columns)
+        test_coverage = _percentage(tested_columns, total_columns)
+        click.echo(
+            f"- {model.name}: doc coverage {doc_coverage}% "
+            f"({documented_columns}/{total_columns}), test coverage {test_coverage}% "
+            f"({tested_columns}/{total_columns})"
+        )
+
+
+def _load_project(
+    target: str,
+    *,
+    check_api_key: bool = True,
+) -> tuple[ScribeConfig, list[ManifestNode]]:
     try:
         _bootstrap()
-    except BootstrapError as exc:
+        config = load_config("dbt-scribe.yml", check_api_key=check_api_key)
+        nodes = resolve_target(target, parse_manifest("target/manifest.json"))
+    except (BootstrapError, ValueError) as exc:
         raise click.ClickException(str(exc)) from exc
-    raise click.ClickException("not yet implemented")
+    return config, nodes
+
+
+def _build_model(
+    node: ManifestNode,
+    config: ScribeConfig,
+    *,
+    overwrite_existing: bool = False,
+):
+    yaml_path = Path("models") / Path(node.path).with_suffix(".yml")
+    yaml_model = parse_yaml(yaml_path)
+    return build_enriched_model(
+        node,
+        yaml_model,
+        config,
+        overwrite_existing=overwrite_existing,
+    )
+
+
+def _echo_status(command: str, model_name: str, dry_run: bool, changed: bool) -> None:
+    mode = "dry-run" if dry_run else "write"
+    status = "changed" if changed else "unchanged"
+    click.echo(f"{command}: {model_name} [{mode}, {status}]")
+
+
+def _echo_summary(command: str, nodes: list[ManifestNode], dry_run: bool) -> None:
+    suffix = " (dry-run)" if dry_run else ""
+    click.echo(f"Summary: {command} processed {len(nodes)} model(s){suffix}.")
+
+
+def _percentage(numerator: int, denominator: int) -> int:
+    if denominator == 0:
+        return 100
+    return round((numerator / denominator) * 100)
