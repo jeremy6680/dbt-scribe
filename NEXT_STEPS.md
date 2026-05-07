@@ -1,0 +1,178 @@
+# NEXT_STEPS.md — dbt-scribe
+
+## Current phase: Phase 1 — Working MVP
+
+**Goal:** End-to-end generation on a single model using the manifest, with the
+`docs`, `tests`, and `generate` commands. Tested against a real dbt project.
+
+**Test project:** `/Users/jeremymarchandeau/Code/personal/learning/databird-dbt-exercices/exercice_bonus_module_3/`
+
+---
+
+## Steps
+
+### Step 01 — Project scaffolding `step/01-scaffolding`
+
+- [ ] `pyproject.toml` — packaging, dependencies, CLI entry point (`dbt-scribe`)
+- [ ] `dbt_scribe/__init__.py`
+- [ ] Empty module stubs for all packages (parsers, generators, writers)
+- [ ] `.env.example`
+- [ ] `.gitignore` (add `.dbt-scribe-cache/`, `.env`, `*.duckdb`, `dist/`, `__pycache__/`)
+- [ ] `tests/conftest.py` (empty)
+- [ ] `tests/fixtures/dbt_project/` — minimal dbt project with pre-generated `manifest.json`
+- [ ] Verify `pip install -e .` works and `dbt-scribe --help` is reachable
+
+---
+
+### Step 02 — Config + Bootstrap `step/02-config-bootstrap`
+
+- [ ] `dbt_scribe/config.py`
+  - Pydantic models: `LLMConfig`, `GenerationConfig`, `DocsConfig`, `TestsConfig`,
+    `CoverageConfig`, `ConventionsConfig`, `CacheConfig`, `ScribeConfig`
+  - `load_config(path) -> ScribeConfig`
+  - `resolve_provider(config) -> LLMProvider`
+- [ ] `dbt_scribe/cli.py`
+  - Click group `dbt-scribe`
+  - Bootstrap check (CWD validation) as a shared `before_invoke` or decorator:
+    validates `dbt_project.yml`, `target/manifest.json`, `dbt-scribe.yml`
+  - Skeleton commands: `docs`, `tests`, `generate` (each prints "not yet implemented")
+  - `init` command — generates `dbt-scribe.yml` from `dbt_project.yml`
+- [ ] `tests/test_config.py` — valid config loads, missing keys use defaults, bad
+      provider raises `ConfigError`, missing API key raises `ConfigError`
+- [ ] `tests/test_bootstrap.py` — correct CWD passes, missing files raise `BootstrapError`
+
+---
+
+### Step 03 — Manifest parser `step/03-manifest-parser`
+
+- [ ] `dbt_scribe/parsers/manifest_parser.py`
+  - `parse_manifest(manifest_path) -> list[ManifestNode]`
+  - Extracts per node: `unique_id`, `name`, `fqn`, `resource_type`, `compiled_code`,
+    `columns` (name + data_type + description), `depends_on.nodes`, `config` (tags,
+    materialized), `path`, adapter type from `metadata.adapter_type`
+  - `ManifestNode` dataclass
+  - Filters to `resource_type == "model"` only
+- [ ] `tests/test_manifest_parser.py` — parse fixture manifest, verify node count,
+      verify compiled SQL is present, verify columns extracted, verify fqn
+
+---
+
+### Step 04 — YAML parser `step/04-yaml-parser`
+
+- [ ] `dbt_scribe/parsers/yaml_parser.py`
+  - `parse_yaml(yaml_path) -> YamlModel | None` (returns None if file does not exist)
+  - `YamlModel` dataclass: model name, description, columns dict
+  - `YamlColumn` dataclass: name, description, tests list
+  - `is_description_set(description: str | None) -> bool`
+    — returns True if non-empty string OR contains `{{ doc("...") }}`
+- [ ] `tests/test_yaml_parser.py` — empty description → False, inline text → True,
+      `{{ doc("...") }}` reference → True, missing file → None
+
+---
+
+### Step 05 — Analyzer `step/05-analyzer`
+
+- [ ] `dbt_scribe/analyzer.py`
+  - `detect_layer(fqn: list[str], config: ConventionsConfig) -> Layer`
+    — uses fqn[1] path prefix matching against configured layer prefixes
+  - `infer_column_type(column_name: str, sql_expression: str | None, config: TestsConfig) -> ColumnType`
+    — applies pk/fk/enum/shared patterns from config; falls back to heuristics
+    (boolean prefixes `is_`/`has_`/`did_`, timestamp suffixes `_at`/`_date`,
+    metric/calculated if sql_expression is non-null and contains aggregation or arithmetic)
+  - `build_enriched_model(node: ManifestNode, yaml_model: YamlModel | None, config: ScribeConfig) -> EnrichedModel`
+  - `EnrichedModel`, `EnrichedColumn` dataclasses (as specified in CDC §8.5)
+- [ ] `tests/test_analyzer.py` — layer detection from fqn, all ColumnType variants,
+      `needs_doc` / `needs_tests` flags respect `overwrite_existing`
+
+---
+
+### Step 06 — LLM providers `step/06-llm-providers`
+
+- [ ] `dbt_scribe/generators/base_generator.py`
+  - `LLMResponse` dataclass
+  - `LLMProvider` abstract base class with `complete(system, user) -> LLMResponse`
+- [ ] `dbt_scribe/generators/providers/anthropic_provider.py` — full implementation
+- [ ] `dbt_scribe/generators/providers/openai_provider.py` — full implementation
+- [ ] `dbt_scribe/generators/providers/google_provider.py` — full implementation
+- [ ] Retry logic (3 attempts, exponential backoff) in base class or mixin
+- [ ] `tests/test_providers.py` — all three providers tested with mocked HTTP responses;
+      verify `LLMResponse` is normalized identically regardless of provider
+
+---
+
+### Step 07 — Generators + prompts `step/07-generators`
+
+- [ ] `dbt_scribe/prompts/docs_staging.j2`
+- [ ] `dbt_scribe/prompts/docs_intermediate.j2`
+- [ ] `dbt_scribe/prompts/docs_mart.j2`
+- [ ] `dbt_scribe/prompts/tests_generic.j2`
+- [ ] `dbt_scribe/generators/docs_generator.py`
+  - `generate_docs(model: EnrichedModel, provider: LLMProvider, config: ScribeConfig) -> DocsResult`
+  - `DocsResult` dataclass: model_description, docs_block_content, columns dict
+- [ ] `dbt_scribe/generators/tests_generator.py`
+  - `generate_tests(model: EnrichedModel, provider: LLMProvider, config: ScribeConfig) -> TestsResult`
+  - `TestsResult` dataclass: columns dict with test lists
+- [ ] JSON response parsing + validation (raise on malformed JSON)
+- [ ] `tests/test_docs_generator.py` — mocked provider, verify output structure,
+      verify mart template is applied, verify shared columns are handled
+- [ ] `tests/test_tests_generator.py` — mocked provider, verify named tests, verify
+      PK always gets unique+not_null, verify placeholder accepted_values
+
+---
+
+### Step 08 — Writers `step/08-writers`
+
+- [ ] `dbt_scribe/writers/yaml_writer.py`
+  - `write_yaml(model: EnrichedModel, docs_result: DocsResult, tests_result: TestsResult, config: ScribeConfig, dry_run: bool) -> WriterResult`
+  - Mode detection: create from scratch if no `.yml` exists, merge otherwise
+  - Creation: canonical structure (ordered sections, section comments, persist_docs
+    conditional on layer, tags from fqn)
+  - Merge: non-destructive (respect `is_description_set`, never delete existing tests)
+  - `--force` flag bypasses `is_description_set` guard
+- [ ] `dbt_scribe/writers/docs_writer.py`
+  - `write_docs_block(model: EnrichedModel, docs_result: DocsResult, config: ScribeConfig, dry_run: bool) -> WriterResult`
+  - Appends new `{% docs %}` blocks to the correct `*__docs.md` file
+  - Creates the file if it does not exist
+  - Does not duplicate blocks that already exist (checks by block name)
+- [ ] `tests/test_yaml_writer.py` — create from scratch (verify structure), merge
+      without force (existing descriptions preserved), merge with force (descriptions
+      overwritten), existing tests never deleted, `doc()` refs preserved
+- [ ] `tests/test_docs_writer.py` — new file created, existing file appended,
+      duplicate block not written twice
+
+---
+
+### Step 09 — Wire up CLI commands `step/09-cli-commands`
+
+- [ ] `dbt-scribe docs --target <path>` — full pipeline: resolve → parse → analyze →
+      generate docs → write YAML + docs.md
+- [ ] `dbt-scribe tests --target <path>` — full pipeline: → generate tests → write YAML
+- [ ] `dbt-scribe generate --target <path>` — docs + tests in one pass
+- [ ] `dbt-scribe audit --target <path>` — coverage report (table format), no generation
+- [ ] Resolver: file / directory / project root
+- [ ] `--dry-run` works across all commands
+- [ ] `--force` works across all commands
+- [ ] Rich output: per-model status lines, summary table
+
+---
+
+### Step 10 — End-to-end test + CI `step/10-e2e-ci`
+
+- [ ] End-to-end test on `databird-dbt-exercices/exercice_bonus_module_3/`
+  - Run `dbt compile` in the test project first
+  - Run `dbt-scribe generate --target models/ --dry-run`
+  - Verify output is valid YAML and valid dbt syntax
+- [ ] `tests/` — integration test using the fixture dbt project + fixture manifest
+- [ ] `.github/workflows/ci.yml` — ruff + pytest on push/PR
+- [ ] Coverage badge in README
+
+---
+
+## Backlog (Phase 2+)
+
+- `ruamel.yaml` migration (currently using `PyYAML` for Phase 1 simplicity)
+- Singular test generation (marts)
+- Cache LLM (SHA-256 compiled_sql + config_fingerprint)
+- `--format json | markdown` for audit
+- Manifest staleness warning
+- PyPI publication
