@@ -80,7 +80,7 @@ dbt-scribe/
 │   ├── test_manifest_parser.py
 │   ├── test_yaml_parser.py
 │   ├── test_analyzer.py
-│   ├── test_providers.py               # All three providers tested with mocked HTTP responses
+│   ├── test_providers.py               # All three providers tested with mocked SDK clients
 │   ├── test_docs_generator.py
 │   ├── test_tests_generator.py
 │   ├── test_yaml_writer.py
@@ -173,6 +173,12 @@ This means `docs_generator.py` and `tests_generator.py` are completely decoupled
 from SDK specifics.
 
 Retry logic (3 attempts, exponential backoff) lives here and is inherited by all providers.
+
+### `tests/test_providers.py`
+
+Tests Anthropic, OpenAI, and Google provider adapters with fake SDK clients. These
+tests verify request wiring and normalized `LLMResponse` output without making any
+network calls.
 
 ### `dbt_scribe/writers/yaml_writer.py`
 

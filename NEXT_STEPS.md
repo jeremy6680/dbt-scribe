@@ -105,15 +105,18 @@ manifest/YAML fixtures and do not require dbt or a warehouse.
 
 ---
 
-### Step 06 — LLM providers `step/06-llm-providers` (partially done)
+### Step 06 — LLM providers `step/06-llm-providers` ✅
 
 - [x] `dbt_scribe/generators/base_generator.py` — completed in Step 02
 - [x] `dbt_scribe/generators/providers/anthropic_provider.py` — completed in Step 02
 - [x] `dbt_scribe/generators/providers/openai_provider.py` — completed in Step 02
 - [x] `dbt_scribe/generators/providers/google_provider.py` — completed in Step 02
 - [x] Retry logic (3 attempts, exponential backoff) in `LLMProvider.complete()` — completed in Step 02
-- [ ] `tests/test_providers.py` — all three providers tested with mocked HTTP responses;
+- [x] `tests/test_providers.py` — all three providers tested with mocked HTTP responses;
       verify `LLMResponse` is normalized identically regardless of provider
+
+**Validation:** 41 pytest tests passing. Provider tests mock SDK clients directly
+and do not make network calls.
 
 ---
 
