@@ -26,6 +26,7 @@ dbt-scribe/
 │   │   │                               # ManifestNode + ManifestColumn dataclasses
 │   │   │                               # Extracts: compiled SQL, columns, fqn, lineage, adapter
 │   │   └── yaml_parser.py              # Reads existing .yml files → YamlModel
+│   │                                   # YamlModel + YamlColumn dataclasses
 │   │                                   # Detects filled descriptions incl. {{ doc("...") }} refs
 │   │
 │   ├── generators/
@@ -133,6 +134,16 @@ It returns model nodes only (`resource_type == "model"`) as `ManifestNode`
 instances, with each column represented by a `ManifestColumn`.
 
 Raw `.sql` files are never read directly (see ADR-007 and ADR-009).
+
+### `dbt_scribe/parsers/yaml_parser.py`
+
+Reads existing dbt YAML files and returns the first model as a `YamlModel`, with
+columns represented by `YamlColumn`. Missing files return `None`, so downstream
+pipeline code can distinguish create-from-scratch from merge mode.
+
+It extracts model descriptions, column descriptions, and existing generic tests
+from both `data_tests` and `tests`. `is_description_set()` treats any non-empty
+description, including a `{{ doc(...) }}` reference, as already filled.
 
 ### `dbt_scribe/analyzer.py`
 

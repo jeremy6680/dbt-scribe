@@ -70,16 +70,19 @@
 
 ---
 
-### Step 04 — YAML parser `step/04-yaml-parser`
+### Step 04 — YAML parser `step/04-yaml-parser` ✅
 
-- [ ] `dbt_scribe/parsers/yaml_parser.py`
+- [x] `dbt_scribe/parsers/yaml_parser.py`
   - `parse_yaml(yaml_path) -> YamlModel | None` (returns None if file does not exist)
   - `YamlModel` dataclass: model name, description, columns dict
   - `YamlColumn` dataclass: name, description, tests list
   - `is_description_set(description: str | None) -> bool`
     — returns True if non-empty string OR contains `{{ doc("...") }}`
-- [ ] `tests/test_yaml_parser.py` — empty description → False, inline text → True,
+- [x] `tests/test_yaml_parser.py` — empty description → False, inline text → True,
       `{{ doc("...") }}` reference → True, missing file → None
+
+**Validation:** 34 pytest tests passing. YAML parser tests use the checked-in
+fixture YAML and do not require dbt or a warehouse.
 
 ---
 
