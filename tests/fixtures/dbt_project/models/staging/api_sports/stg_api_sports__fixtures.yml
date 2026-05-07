@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: stg_api_sports__fixtures
+    description: "Staged rugby fixtures from the API Sports source."
+    columns:
+      - name: fixture_id
+        description: "{{ doc('fixture_id') }}"
+        data_tests:
+          - not_null
+          - unique
+      - name: league_id
+        description: ""
+      - name: home_team_id
+        description: ""
+      - name: away_team_id
+        description: ""
+      - name: fixture_status
+        description: "Current status of the fixture (e.g. NS, FT, CANC)."
+      - name: fixture_date
+        description: ""
+      - name: home_score
+        description: ""
+      - name: away_score
+        description: ""
+      - name: is_finished
+        description: ""
+      - name: created_at
+        description: "{{ doc('created_at') }}"
+      - name: updated_at
+        description: "{{ doc('updated_at') }}"

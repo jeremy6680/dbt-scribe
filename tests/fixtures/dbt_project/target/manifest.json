@@ -1,0 +1,266 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/manifest/v12/manifest.json",
+    "dbt_version": "1.9.0",
+    "generated_at": "2026-05-07T12:00:00.000000Z",
+    "invocation_id": "fixture-invocation-id",
+    "env": {},
+    "adapter_type": "duckdb"
+  },
+  "nodes": {
+    "model.fixture_project.stg_api_sports__fixtures": {
+      "unique_id": "model.fixture_project.stg_api_sports__fixtures",
+      "name": "stg_api_sports__fixtures",
+      "resource_type": "model",
+      "fqn": ["fixture_project", "staging", "api_sports", "stg_api_sports__fixtures"],
+      "path": "staging/api_sports/stg_api_sports__fixtures.sql",
+      "original_file_path": "models/staging/api_sports/stg_api_sports__fixtures.sql",
+      "compiled_code": "with source as (\n    select * from raw.api_sports.fixtures\n),\n\nrenamed as (\n    select\n        fixture_id,\n        league_id,\n        home_team_id,\n        away_team_id,\n        fixture_status,\n        fixture_date,\n        home_score,\n        away_score,\n        is_finished,\n        created_at,\n        updated_at\n    from source\n)\n\nselect * from renamed",
+      "columns": {
+        "fixture_id": {
+          "name": "fixture_id",
+          "description": "",
+          "data_type": "integer"
+        },
+        "league_id": {
+          "name": "league_id",
+          "description": "",
+          "data_type": "integer"
+        },
+        "home_team_id": {
+          "name": "home_team_id",
+          "description": "",
+          "data_type": "integer"
+        },
+        "away_team_id": {
+          "name": "away_team_id",
+          "description": "",
+          "data_type": "integer"
+        },
+        "fixture_status": {
+          "name": "fixture_status",
+          "description": "",
+          "data_type": "varchar"
+        },
+        "fixture_date": {
+          "name": "fixture_date",
+          "description": "",
+          "data_type": "timestamp"
+        },
+        "home_score": {
+          "name": "home_score",
+          "description": "",
+          "data_type": "integer"
+        },
+        "away_score": {
+          "name": "away_score",
+          "description": "",
+          "data_type": "integer"
+        },
+        "is_finished": {
+          "name": "is_finished",
+          "description": "",
+          "data_type": "boolean"
+        },
+        "created_at": {
+          "name": "created_at",
+          "description": "",
+          "data_type": "timestamp"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "description": "",
+          "data_type": "timestamp"
+        }
+      },
+      "depends_on": {
+        "nodes": ["source.fixture_project.api_sports.fixtures"]
+      },
+      "config": {
+        "materialized": "view",
+        "tags": []
+      }
+    },
+    "model.fixture_project.int_fixtures_enriched_with_teams": {
+      "unique_id": "model.fixture_project.int_fixtures_enriched_with_teams",
+      "name": "int_fixtures_enriched_with_teams",
+      "resource_type": "model",
+      "fqn": ["fixture_project", "intermediate", "rugby", "int_fixtures_enriched_with_teams"],
+      "path": "intermediate/rugby/int_fixtures_enriched_with_teams.sql",
+      "original_file_path": "models/intermediate/rugby/int_fixtures_enriched_with_teams.sql",
+      "compiled_code": "with fixtures as (\n    select * from dev.fixture_project.stg_api_sports__fixtures\n),\n\nteams as (\n    select * from dev.fixture_project.stg_api_sports__teams\n),\n\nenriched as (\n    select\n        f.fixture_id,\n        f.league_id,\n        f.fixture_status,\n        f.fixture_date,\n        f.home_score,\n        f.away_score,\n        f.is_finished,\n        ht.team_name as home_team_name,\n        at.team_name as away_team_name,\n        (f.home_score + f.away_score) as total_score,\n        f.created_at,\n        f.updated_at\n    from fixtures f\n    left join teams ht on f.home_team_id = ht.team_id\n    left join teams at on f.away_team_id = at.team_id\n)\n\nselect * from enriched",
+      "columns": {
+        "fixture_id": {
+          "name": "fixture_id",
+          "description": "",
+          "data_type": "integer"
+        },
+        "league_id": {
+          "name": "league_id",
+          "description": "",
+          "data_type": "integer"
+        },
+        "fixture_status": {
+          "name": "fixture_status",
+          "description": "",
+          "data_type": "varchar"
+        },
+        "fixture_date": {
+          "name": "fixture_date",
+          "description": "",
+          "data_type": "timestamp"
+        },
+        "home_score": {
+          "name": "home_score",
+          "description": "",
+          "data_type": "integer"
+        },
+        "away_score": {
+          "name": "away_score",
+          "description": "",
+          "data_type": "integer"
+        },
+        "is_finished": {
+          "name": "is_finished",
+          "description": "",
+          "data_type": "boolean"
+        },
+        "home_team_name": {
+          "name": "home_team_name",
+          "description": "",
+          "data_type": "varchar"
+        },
+        "away_team_name": {
+          "name": "away_team_name",
+          "description": "",
+          "data_type": "varchar"
+        },
+        "total_score": {
+          "name": "total_score",
+          "description": "",
+          "data_type": "integer"
+        },
+        "created_at": {
+          "name": "created_at",
+          "description": "",
+          "data_type": "timestamp"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "description": "",
+          "data_type": "timestamp"
+        }
+      },
+      "depends_on": {
+        "nodes": [
+          "model.fixture_project.stg_api_sports__fixtures",
+          "model.fixture_project.stg_api_sports__teams"
+        ]
+      },
+      "config": {
+        "materialized": "ephemeral",
+        "tags": []
+      }
+    },
+    "model.fixture_project.fixtures": {
+      "unique_id": "model.fixture_project.fixtures",
+      "name": "fixtures",
+      "resource_type": "model",
+      "fqn": ["fixture_project", "marts", "rugby", "fixtures"],
+      "path": "marts/rugby/fixtures.sql",
+      "original_file_path": "models/marts/rugby/fixtures.sql",
+      "compiled_code": "with enriched as (\n    select * from dev.fixture_project.int_fixtures_enriched_with_teams\n),\n\nfinal as (\n    select\n        fixture_id,\n        league_id,\n        fixture_status,\n        fixture_date,\n        home_team_name,\n        away_team_name,\n        home_score,\n        away_score,\n        total_score,\n        is_finished,\n        created_at,\n        updated_at\n    from enriched\n)\n\nselect * from final",
+      "columns": {
+        "fixture_id": {
+          "name": "fixture_id",
+          "description": "",
+          "data_type": "integer"
+        },
+        "league_id": {
+          "name": "league_id",
+          "description": "",
+          "data_type": "integer"
+        },
+        "fixture_status": {
+          "name": "fixture_status",
+          "description": "",
+          "data_type": "varchar"
+        },
+        "fixture_date": {
+          "name": "fixture_date",
+          "description": "",
+          "data_type": "timestamp"
+        },
+        "home_team_name": {
+          "name": "home_team_name",
+          "description": "",
+          "data_type": "varchar"
+        },
+        "away_team_name": {
+          "name": "away_team_name",
+          "description": "",
+          "data_type": "varchar"
+        },
+        "home_score": {
+          "name": "home_score",
+          "description": "",
+          "data_type": "integer"
+        },
+        "away_score": {
+          "name": "away_score",
+          "description": "",
+          "data_type": "integer"
+        },
+        "total_score": {
+          "name": "total_score",
+          "description": "",
+          "data_type": "integer"
+        },
+        "is_finished": {
+          "name": "is_finished",
+          "description": "",
+          "data_type": "boolean"
+        },
+        "created_at": {
+          "name": "created_at",
+          "description": "",
+          "data_type": "timestamp"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "description": "",
+          "data_type": "timestamp"
+        }
+      },
+      "depends_on": {
+        "nodes": ["model.fixture_project.int_fixtures_enriched_with_teams"]
+      },
+      "config": {
+        "materialized": "table",
+        "tags": []
+      }
+    }
+  },
+  "sources": {},
+  "exposures": {},
+  "metrics": {},
+  "selectors": {},
+  "parent_map": {
+    "model.fixture_project.stg_api_sports__fixtures": ["source.fixture_project.api_sports.fixtures"],
+    "model.fixture_project.int_fixtures_enriched_with_teams": [
+      "model.fixture_project.stg_api_sports__fixtures"
+    ],
+    "model.fixture_project.fixtures": [
+      "model.fixture_project.int_fixtures_enriched_with_teams"
+    ]
+  },
+  "child_map": {
+    "model.fixture_project.stg_api_sports__fixtures": [
+      "model.fixture_project.int_fixtures_enriched_with_teams"
+    ],
+    "model.fixture_project.int_fixtures_enriched_with_teams": [
+      "model.fixture_project.fixtures"
+    ],
+    "model.fixture_project.fixtures": []
+  }
+}

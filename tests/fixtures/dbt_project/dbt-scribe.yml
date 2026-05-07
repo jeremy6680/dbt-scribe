@@ -1,0 +1,34 @@
+version: 1
+
+llm:
+  provider: anthropic
+  model: claude-sonnet-4-20250514
+  temperature: 0.2
+
+docs:
+  two_tier: true
+  shared_columns:
+    - created_at
+    - updated_at
+    - _fivetran_synced
+  default_owner: "Data Team"
+
+tests:
+  pk_patterns:
+    - "^.*_id$"
+    - "^id$"
+  fk_patterns:
+    - "^.*_fk$"
+  enum_patterns:
+    - "^.*_type$"
+    - "^.*_status$"
+    - "^.*_category$"
+
+conventions:
+  staging_prefix: staging
+  intermediate_prefix: intermediate
+  marts_prefix: marts
+
+coverage:
+  min_doc_coverage: 80
+  min_test_coverage: 70
