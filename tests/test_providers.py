@@ -14,8 +14,9 @@ def test_anthropic_provider_normalizes_response(monkeypatch):
     class FakeMessages:
         def create(self, **kwargs):
             calls.append(kwargs)
+            import anthropic
             return SimpleNamespace(
-                content=[SimpleNamespace(text='{"ok": true}')],
+                content=[anthropic.types.TextBlock(type="text", text='{"ok": true}')],
                 usage=SimpleNamespace(input_tokens=12, output_tokens=7),
             )
 

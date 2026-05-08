@@ -154,4 +154,4 @@ def resolve_provider(config: ScribeConfig) -> LLMProvider:
         "google": GoogleProvider,
     }
     cls = providers[config.llm.provider]
-    return cls(model=config.llm.resolved_model, temperature=config.llm.temperature)
+    return cls(model=config.llm.resolved_model, temperature=config.llm.temperature)  # type: ignore[abstract]
