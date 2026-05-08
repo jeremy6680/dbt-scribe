@@ -98,6 +98,7 @@ class ScribeConfig(BaseModel):
     coverage: CoverageConfig = CoverageConfig()
     conventions: ConventionsConfig = ConventionsConfig()
     cache: CacheConfig = CacheConfig()
+    model_root: str = "models"
 
     @model_validator(mode="after")
     def check_api_key_present(self) -> ScribeConfig:
@@ -110,7 +111,7 @@ class ScribeConfig(BaseModel):
         return self
 
 
-def load_config(path: Path | str, *, check_api_key: bool = True) -> ScribeConfig:
+def load_config(path: Path | str, *, check_api_key: bool = True, model_root: str = "models") -> ScribeConfig:
     path = Path(path)
     if not path.exists():
         raise ConfigError(
@@ -127,18 +128,19 @@ def load_config(path: Path | str, *, check_api_key: bool = True) -> ScribeConfig
 
     try:
         if check_api_key:
-            return ScribeConfig(**raw)
-        # Skip API key validation during bootstrap / init
-        config = ScribeConfig.model_construct()
-        config.llm = LLMConfig(**raw.get("llm", {}))
-        config.docs = DocsConfig(**raw.get("docs", {}))
-        config.tests = TestsConfig(**raw.get("tests", {}))
-        config.coverage = CoverageConfig(**raw.get("coverage", {}))
-        config.conventions = ConventionsConfig(**raw.get("conventions", {}))
-        config.cache = CacheConfig(**raw.get("cache", {}))
-        return config
+            config = ScribeConfig(**raw)
+        else:
+            # Skip API key validation during bootstrap / init
+            config = ScribeConfig.model_construct()
+            config.llm = LLMConfig(**raw.get("llm", {}))
+            config.docs = DocsConfig(**raw.get("docs", {}))
+            config.tests = TestsConfig(**raw.get("tests", {}))
+            config.coverage = CoverageConfig(**raw.get("coverage", {}))
+            config.conventions = ConventionsConfig(**raw.get("conventions", {}))
+            config.cache = CacheConfig(**raw.get("cache", {}))
     except (ValueError, TypeError) as exc:
         raise ConfigError(f"Invalid configuration in {path}: {exc}") from exc
+    return config.model_copy(update={"model_root": model_root})
 
 
 def resolve_provider(config: ScribeConfig) -> LLMProvider:

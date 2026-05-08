@@ -6,15 +6,19 @@ from pathlib import Path
 from dbt_scribe.parsers.manifest_parser import ManifestNode
 
 
-def resolve_target(target: str | Path, nodes: list[ManifestNode]) -> list[ManifestNode]:
+def resolve_target(
+    target: str | Path,
+    nodes: list[ManifestNode],
+    model_root: str = "models",
+) -> list[ManifestNode]:
     """Resolve a CLI target path to matching manifest model nodes."""
     target_path = _normalize_target(target)
 
-    if _is_project_root_target(target_path):
+    if _is_project_root_target(target_path, model_root):
         return nodes
 
     matched_nodes = [
-        node for node in nodes if _node_matches_target(node, target_path)
+        node for node in nodes if _node_matches_target(node, target_path, model_root)
     ]
     if not matched_nodes:
         raise ValueError(f"No manifest model nodes matched target: {target}")
@@ -29,18 +33,14 @@ def _normalize_target(target: str | Path) -> Path:
     return Path(str(path).rstrip("/"))
 
 
-def _is_project_root_target(target: Path) -> bool:
-    return str(target) in {".", "", "models"}
+def _is_project_root_target(target: Path, model_root: str = "models") -> bool:
+    return str(target) in {".", "", model_root}
 
 
-def _node_matches_target(node: ManifestNode, target: Path) -> bool:
-    sql_path = Path("models") / node.path
+def _node_matches_target(node: ManifestNode, target: Path, model_root: str = "models") -> bool:
+    sql_path = Path(model_root) / node.path
     yaml_path = sql_path.with_suffix(".yml")
-    return (
-        target in (sql_path, yaml_path)
-        or _is_relative_to(sql_path.parent, target)
-        or _is_relative_to(sql_path, target)
-    )
+    return target in (sql_path, yaml_path) or _is_relative_to(sql_path.parent, target)
 
 
 def _is_relative_to(path: Path, parent: Path) -> bool:
