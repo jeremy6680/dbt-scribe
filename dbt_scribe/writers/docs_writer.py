@@ -22,7 +22,7 @@ def write_docs_block(
     config: ScribeConfig,
     dry_run: bool,
 ) -> WriterResult:
-    path = _docs_path(model)
+    path = _docs_path(model, config.model_root)
     block_name = model.name
     existing_content = path.read_text() if path.exists() else ""
 
@@ -37,8 +37,8 @@ def write_docs_block(
     return WriterResult(path=path.resolve(), changed=True, content=new_content)
 
 
-def _docs_path(model: EnrichedModel) -> Path:
-    model_path = Path("models") / model.path
+def _docs_path(model: EnrichedModel, model_root: str = "models") -> Path:
+    model_path = Path(model_root) / model.path
     if model.layer is Layer.STAGING and len(model.fqn) >= 3:
         filename = f"_{model.fqn[2]}__docs.md"
     elif model.layer is Layer.INTERMEDIATE and len(model.fqn) >= 3:

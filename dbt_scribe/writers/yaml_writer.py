@@ -29,7 +29,7 @@ def write_yaml(
     *,
     force: bool = False,
 ) -> WriterResult:
-    path = _model_yaml_path(model)
+    path = _model_yaml_path(model, config.model_root)
     data = _load_yaml(path)
     model_yaml = _find_or_create_model(data, model)
 
@@ -37,14 +37,16 @@ def write_yaml(
     _merge_columns(model_yaml, model, docs_result, tests_result, force=force)
 
     content = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
-    if not dry_run:
+    existing_content = path.read_text() if path.exists() else None
+    changed = existing_content != content
+    if not dry_run and changed:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content)
-    return WriterResult(path=path.resolve(), changed=True, content=content)
+    return WriterResult(path=path.resolve(), changed=changed, content=content)
 
 
-def _model_yaml_path(model: EnrichedModel) -> Path:
-    return Path("models") / Path(model.path).with_suffix(".yml")
+def _model_yaml_path(model: EnrichedModel, model_root: str = "models") -> Path:
+    return Path(model_root) / Path(model.path).with_suffix(".yml")
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -106,13 +108,19 @@ def _merge_columns(
         ):
             column_yaml["description"] = generated_description
 
+        _migrate_tests_key(column_yaml)
         generated_tests = tests_result.columns.get(column_name, [])
         if generated_tests:
             _append_missing_tests(column_yaml, generated_tests)
 
 
+def _migrate_tests_key(column_yaml: dict[str, Any]) -> None:
+    if "tests" in column_yaml and "data_tests" not in column_yaml:
+        column_yaml["data_tests"] = column_yaml.pop("tests")
+
+
 def _append_missing_tests(column_yaml: dict[str, Any], generated_tests: list[Any]) -> None:
-    tests = column_yaml.setdefault("data_tests", column_yaml.pop("tests", []))
+    tests = column_yaml.setdefault("data_tests", [])
     for test in generated_tests:
         if test not in tests:
             tests.append(test)

@@ -37,16 +37,17 @@ def _ensure_primary_key_tests(model: EnrichedModel, columns: dict[str, list[Any]
         if column.column_type is not ColumnType.PRIMARY_KEY:
             continue
         tests = columns.setdefault(column.name, [])
-        _prepend_missing_named_test(
-            tests,
-            {"unique": {"name": f"unique_{model.name}_{column.name}"}},
-            "unique",
-        )
-        _prepend_missing_named_test(
-            tests,
+        not_null = next(
+            (t for t in tests if _has_test([t], "not_null")),
             {"not_null": {"name": f"not_null_{model.name}_{column.name}"}},
-            "not_null",
         )
+        unique = next(
+            (t for t in tests if _has_test([t], "unique")),
+            {"unique": {"name": f"unique_{model.name}_{column.name}"}},
+        )
+        remaining = [t for t in tests if not _has_test([t], "not_null") and not _has_test([t], "unique")]
+        tests.clear()
+        tests.extend([not_null, unique] + remaining)
 
 
 def _ensure_enum_placeholders(model: EnrichedModel, columns: dict[str, list[Any]]) -> None:

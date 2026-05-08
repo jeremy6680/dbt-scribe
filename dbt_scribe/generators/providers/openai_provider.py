@@ -21,10 +21,11 @@ class OpenAIProvider(LLMProvider):
             ],
         )
         choice = resp.choices[0]
+        usage = resp.usage
         return LLMResponse(
             content=choice.message.content or "",
-            input_tokens=resp.usage.prompt_tokens,
-            output_tokens=resp.usage.completion_tokens,
+            input_tokens=usage.prompt_tokens if usage else 0,
+            output_tokens=usage.completion_tokens if usage else 0,
             provider="openai",
             model=self.model,
         )

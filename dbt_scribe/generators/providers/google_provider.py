@@ -24,8 +24,8 @@ class GoogleProvider(LLMProvider):
         usage = resp.usage_metadata
         return LLMResponse(
             content=resp.text or "",
-            input_tokens=usage.prompt_token_count or 0,
-            output_tokens=usage.candidates_token_count or 0,
+            input_tokens=usage.prompt_token_count or 0 if usage else 0,
+            output_tokens=usage.candidates_token_count or 0 if usage else 0,
             provider="google",
             model=self.model,
         )

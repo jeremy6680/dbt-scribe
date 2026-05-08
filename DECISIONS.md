@@ -223,6 +223,57 @@ with a generated inline description.
 
 ---
 
+## ADR-012 — `model_root` read from `dbt_project.yml`, not hardcoded
+
+**Date:** 2026-05-08  
+**Status:** Accepted
+
+**Decision:** The path prefix used to locate model YAML files (default `"models"`) is
+read from the `model-paths` key of `dbt_project.yml` at startup, rather than being
+hardcoded as the string `"models"`.
+
+**Rationale:** dbt's `model-paths` config is the authoritative source for where models
+live. Hardcoding `"models"` would silently create files in the wrong directory (or miss
+existing ones) for any project that sets `model-paths: [dbt_models]` or similar —
+without raising an error, causing documentation corruption.
+
+**Implementation:** `_read_model_root()` in `cli.py` reads `dbt_project.yml` (already
+required by `_bootstrap()`) and extracts `model-paths[0]`, defaulting to `"models"` if
+the key is absent. The value is stored in `ScribeConfig.model_root` via `model_copy()`
+and threaded through to `yaml_writer`, `docs_writer`, and `resolver`.
+
+**Consequence:** `ScribeConfig` gains a `model_root: str` field. It is not
+user-configurable in `dbt-scribe.yml` — it is always derived from `dbt_project.yml` to
+avoid duplicating config the user already maintains.
+
+**Alternative rejected:** A `model_root` key in `dbt-scribe.yml`. Rejected because it
+would require users to keep two files in sync.
+
+---
+
+## ADR-013 — Non-retryable HTTP status codes bypass the retry loop
+
+**Date:** 2026-05-08  
+**Status:** Accepted
+
+**Decision:** `LLMProvider.complete()` does not retry exceptions whose `status_code`
+attribute is in `{400, 401, 403, 404}`. These are re-raised immediately.
+
+**Rationale:** Retrying authentication errors (401), permission errors (403), or
+not-found errors (404) is wasteful and misleading — the result is identical on every
+attempt, and the 0 + 2 + 4 second backoff adds 6 seconds of delay before the same
+failure. The real root cause (missing API key, wrong model name) is also obscured by
+the final "LLM call failed after 3 attempts" message.
+
+**Implementation:** Provider-agnostic duck typing: `getattr(exc, "status_code", None)`.
+The Anthropic, OpenAI, and Google SDKs all expose `status_code` on their HTTP exception
+classes. No provider SDK is imported in `base_generator.py`.
+
+**Consequence:** Only transient errors (network timeout, 429 rate limit, 5xx) benefit
+from the retry loop.
+
+---
+
 ## ADR-011 — Run from dbt project root, no `--project-dir` flag in V1
 
 **Date:** 2026-05-07  

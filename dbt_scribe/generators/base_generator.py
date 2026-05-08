@@ -19,12 +19,16 @@ class LLMProvider(abc.ABC):
         self.model = model
         self.temperature = temperature
 
+    _NON_RETRYABLE_STATUS_CODES = {400, 401, 403, 404}
+
     def complete(self, system: str, user: str) -> LLMResponse:
         last_exc: Exception | None = None
         for attempt in range(3):
             try:
                 return self._complete(system, user)
             except Exception as exc:
+                if getattr(exc, "status_code", None) in self._NON_RETRYABLE_STATUS_CODES:
+                    raise
                 last_exc = exc
                 if attempt < 2:
                     time.sleep(2**attempt)

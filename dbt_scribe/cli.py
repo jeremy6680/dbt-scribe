@@ -6,7 +6,7 @@ import click
 
 from dbt_scribe import __version__
 from dbt_scribe.analyzer import build_enriched_model
-from dbt_scribe.config import ScribeConfig, load_config, resolve_provider
+from dbt_scribe.config import ConfigError, ScribeConfig, load_config, resolve_provider
 from dbt_scribe.generators.docs_generator import DocsResult, generate_docs
 from dbt_scribe.generators.tests_generator import TestsResult, generate_tests
 from dbt_scribe.parsers.manifest_parser import ManifestNode, parse_manifest
@@ -200,11 +200,25 @@ def _load_project(
 ) -> tuple[ScribeConfig, list[ManifestNode]]:
     try:
         _bootstrap()
-        config = load_config("dbt-scribe.yml", check_api_key=check_api_key)
-        nodes = resolve_target(target, parse_manifest("target/manifest.json"))
-    except (BootstrapError, ValueError) as exc:
+        model_root = _read_model_root()
+        config = load_config("dbt-scribe.yml", check_api_key=check_api_key, model_root=model_root)
+        nodes = resolve_target(target, parse_manifest("target/manifest.json"), model_root=model_root)
+    except (BootstrapError, ValueError, ConfigError) as exc:
         raise click.ClickException(str(exc)) from exc
     return config, nodes
+
+
+def _read_model_root() -> str:
+    import yaml as _yaml
+
+    try:
+        raw = _yaml.safe_load(Path("dbt_project.yml").read_text()) or {}
+    except Exception:
+        return "models"
+    paths = raw.get("model-paths") or raw.get("source-paths")
+    if isinstance(paths, list) and paths:
+        return paths[0]
+    return "models"
 
 
 def _build_model(
@@ -213,7 +227,7 @@ def _build_model(
     *,
     overwrite_existing: bool = False,
 ):
-    yaml_path = Path("models") / Path(node.path).with_suffix(".yml")
+    yaml_path = Path(config.model_root) / Path(node.path).with_suffix(".yml")
     yaml_model = parse_yaml(yaml_path)
     return build_enriched_model(
         node,

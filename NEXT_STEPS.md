@@ -198,12 +198,34 @@ mocked providers/generators; no dbt, warehouse, or LLM calls are required.
   - Run `dbt-scribe generate --target models/ --dry-run`
   - Verify output is valid YAML and valid dbt syntax
 - [x] `tests/` — integration test using the fixture dbt project + fixture manifest
-- [x] `.github/workflows/ci.yml` — ruff + pytest on push/PR
+- [x] `.github/workflows/ci.yml` — ruff + mypy + pytest on push/PR
 - [x] CI status badge in README
 
 **Validation:** 67 pytest tests passing and `ruff check .` passing. The external
 dbt project end-to-end run was not completed in this environment because `dbt` was
 not available and the external project did not yet contain `dbt-scribe.yml`.
+
+---
+
+### Post-MVP bugfix session `2026-05-08`
+
+Eight issues identified by code review and fixed before first real-project use:
+
+- `yaml_writer.py` — `WriterResult.changed` was always `True`; now compares serialised
+  content before and after merge (dry-run output is now reliable)
+- `config.py` / `cli.py` — `ConfigError` raised by the Pydantic `model_validator`
+  (missing API key) escaped all `except` blocks and caused an unhandled crash; now
+  caught in `_load_project`
+- `cli.py` / `yaml_writer.py` / `docs_writer.py` / `resolver.py` — `"models/"` prefix
+  was hardcoded; `model_root` is now read from `dbt_project.yml#model-paths` (see ADR-012)
+- `yaml_writer.py` — `tests → data_tests` key migration only ran when new tests were
+  added; now runs unconditionally for every column touched, producing consistent YAML
+- `base_generator.py` — retry loop caught all exceptions including non-retryable 4xx
+  errors; non-retryable status codes are now re-raised immediately (see ADR-013)
+- `tests_generator.py` — `[not_null, unique]` PK test order was wrong when only one of
+  the two was missing; rewritten to reconstruct the list in canonical order
+- `resolver.py` — redundant third `_is_relative_to` condition removed
+- `.github/workflows/ci.yml` — `mypy dbt_scribe` step was documented but absent; added
 
 ---
 

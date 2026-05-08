@@ -91,7 +91,7 @@ dbt-scribe/
 ├── .gitignore
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                      # ruff + mypy + pytest on push and PR
+│       └── ci.yml                      # ruff + mypy + pytest on push and PR (in that order)
 ├── pyproject.toml                      # Package metadata, dependencies, CLI entry point, ruff config
 ├── README.md                           # MVP overview, CI badge, and quickstart commands
 ├── CHANGELOG.md                        # Version history (written at first release)
