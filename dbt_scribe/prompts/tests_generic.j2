@@ -1,25 +1,78 @@
 Generate dbt generic tests for the model `{{ model.name }}`.
 
 Return a JSON object with exactly one top-level key:
-- `columns`: object mapping column names to lists of dbt generic tests
+- `columns`: object mapping column names to lists of test objects
+
+CRITICAL — test format rules (dbt >= 1.10.5 syntax):
+- Every test must be a dict with exactly one key: the test type.
+- `not_null` and `unique` take no arguments — their value is a dict with only `name`.
+- `accepted_values` and `relationships` put their arguments under an `arguments` key.
+- Valid test types: `not_null`, `unique`, `accepted_values`, `relationships`.
+- DO NOT use `dbt_utils` tests. DO NOT use a `test:` key. DO NOT return bare strings.
+
+Correct format examples:
+```json
+{
+  "columns": {
+    "order_id": [
+      {"not_null": {"name": "mrt_orders_order_id_not_null"}},
+      {"unique": {"name": "mrt_orders_order_id_unique"}}
+    ],
+    "order_status": [
+      {
+        "accepted_values": {
+          "name": "mrt_orders_order_status_accepted_values",
+          "arguments": {"values": ["pending", "shipped", "delivered"]}
+        }
+      }
+    ],
+    "user_id": [
+      {"not_null": {"name": "mrt_orders_user_id_not_null"}},
+      {
+        "relationships": {
+          "name": "mrt_orders_user_id_fk",
+          "arguments": {
+            "to": "ref('stg_sales_database__user')",
+            "field": "user_id"
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+Naming convention for the `name` key: `{{ model.name }}_<column_name>_<test_type>`
 
 Rules:
-- Use named tests.
-- Primary keys should have `not_null` and `unique`.
-- Enum columns should use `accepted_values`; use an empty `values` list when the allowed values are unknown.
-- Foreign keys may use `relationships` when the upstream target is clear.
-- Do not include tests for columns where `needs_tests` is false.
+- Primary key columns (type: pk): always add `not_null` + `unique`.
+- Foreign key columns (type: fk): always add `not_null`. Add `relationships` only when
+  the upstream model is clearly identifiable from the upstream nodes listed below.
+- Enum columns (type: enum): add `accepted_values`. Infer values from the compiled SQL
+  (CASE WHEN, WHERE x IN (...), etc.). If values cannot be inferred, use `values: []`
+  and add a `"todo": "fill with actual enum values from source system"` key alongside `arguments`.
+- Timestamp columns (type: timestamp): add `not_null` ONLY if the column name
+  suggests it is always populated (e.g. `created_at`, `order_created_at`).
+  Never add `not_null` to columns that are logically nullable by business logic
+  (e.g. `delivered_at`, `picked_up_at`, `approved_at`, `cancelled_at`) — these
+  are only set when the corresponding event occurs.
+- Metric columns (type: metric): add nothing unless clearly required.
+- Do not generate tests for columns where `needs_tests` is false.
+- Do not generate tests for columns that already have the same test type.
 
 Model context:
-- unique_id: {{ model.unique_id }}
-- fqn: {{ model.fqn | join(".") }}
 - layer: {{ model.layer.value }}
 - upstream nodes: {{ model.depends_on_nodes | join(", ") }}
 
 Columns:
 {% for column in model.columns.values() %}
-- {{ column.name }} ({{ column.data_type or "unknown" }}, {{ column.column_type.value }})
-  existing tests: {{ column.tests }}
+- {{ column.name }} (type: {{ column.column_type.value }}, sql_type: {{ column.data_type or "unknown" }})
   needs_tests: {{ column.needs_tests }}
-  sql_expression: {{ column.sql_expression or "" }}
+  existing tests: {{ column.tests }}
+  sql_expression: {{ column.sql_expression or "none" }}
 {% endfor %}
+
+Compiled SQL (use this to infer enum values from CASE WHEN / WHERE IN clauses):
+```sql
+{{ model.compiled_code }}
+```
