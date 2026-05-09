@@ -61,10 +61,35 @@ def _system_prompt() -> str:
 
 
 def _parse_json_response(content: str) -> dict:
+    """Parse and return a JSON response from the LLM.
+
+    Strips markdown code fences (```json ... ```) that some models add
+    despite being instructed to return raw JSON only.
+
+    Args:
+        content: Raw string response from the LLM provider.
+
+    Returns:
+        Parsed dictionary from the JSON response.
+
+    Raises:
+        ValueError: If the content cannot be parsed as valid JSON.
+    """
+    # Strip markdown code fences if present
+    cleaned = content.strip()
+    if cleaned.startswith("```"):
+        # Remove opening fence (```json or ```)
+        cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned
+        # Remove closing fence
+        if cleaned.endswith("```"):
+            cleaned = cleaned[: cleaned.rfind("```")]
+    cleaned = cleaned.strip()
+
+    if not cleaned:
+        raise ValueError("LLM returned an empty response")
+
     try:
-        payload = json.loads(content)
+        payload = json.loads(cleaned)
     except json.JSONDecodeError as exc:
         raise ValueError("LLM response must be valid JSON") from exc
-    if not isinstance(payload, dict):
-        raise ValueError("LLM response must be a valid JSON object")
     return payload

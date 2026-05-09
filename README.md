@@ -99,17 +99,30 @@ any time your models change:
 dbt compile
 ```
 
-### 2. Set your API key
+### 2. API key
+
+`dbt-scribe` requires an API key for the LLM provider configured in `dbt-scribe.yml`
+(default: Anthropic Claude).
+
+Add the key to your shell profile so it is available in every session:
 
 ```bash
-# Anthropic Claude (default)
+# Add to ~/.zprofile (Mac) or ~/.bashrc (Linux)
 export ANTHROPIC_API_KEY=sk-ant-...
 
-# OpenAI
-export OPENAI_API_KEY=sk-...
+# Reload your shell profile
+source ~/.zprofile
+```
 
-# Google Gemini
-export GOOGLE_API_KEY=...
+> **Mac note:** Use `~/.zprofile`, not `~/.zshrc`. On Mac, terminal apps open as
+> login shells and load `~/.zprofile` first. Variables set only in `~/.zshrc` may
+> not be available inside virtual environments.
+
+Other supported providers:
+
+```bash
+export OPENAI_API_KEY=sk-...    # for provider: openai
+export GOOGLE_API_KEY=...       # for provider: google
 ```
 
 ### 3. Initialise the config
@@ -152,6 +165,9 @@ dbt-scribe generate --target models/
 ---
 
 ## Commands
+
+All commands must be run from the **root of your dbt project**
+(the directory containing `dbt_project.yml`).
 
 ### `dbt-scribe init`
 
