@@ -255,7 +255,7 @@ Key settings:
 ```yaml
 llm:
   provider: anthropic # anthropic | openai | google
-  model: claude-sonnet-4-20250514
+  model: claude-sonnet-6
   temperature: 0.2 # Low for consistent, structured output
 
 docs:

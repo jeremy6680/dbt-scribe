@@ -50,6 +50,7 @@ its own `dbt-scribe.yml`.
       `BootstrapError` with a contextual hint, all-missing lists all three
 
 **Also completed as part of Step 02** (originally planned for Step 06):
+
 - [x] `dbt_scribe/generators/base_generator.py` — `LLMProvider` ABC + `LLMResponse`
       dataclass + 3-attempt exponential backoff retry in `complete()`
 - [x] `dbt_scribe/generators/providers/anthropic_provider.py` — full implementation
@@ -191,49 +192,49 @@ mocked providers/generators; no dbt, warehouse, or LLM calls are required.
 
 ---
 
-### Step 10 — End-to-end test + CI `step/10-e2e-ci`
+### Step 10 — End-to-end test + CI `step/10-e2e-ci` ✅
 
-- [ ] End-to-end test on `databird-dbt-exercices/exercice_bonus_module_3/`
-  - Run `dbt compile` in the test project first
-  - Run `dbt-scribe generate --target models/ --dry-run`
-  - Verify output is valid YAML and valid dbt syntax
+- [x] End-to-end test on `databird-dbt-exercices/exercice_bonus_module_3/dbt-test-1/`
+  - Real BigQuery project, 13 models across staging / intermediate / mart layers
+  - `dbt-scribe generate --target models/` — all 13 models generated successfully
+  - 100% doc coverage across all models
+  - Named tests generated with correct dbt 1.10.5+ syntax
+  - Four-section mart docs block correctly assembled
 - [x] `tests/` — integration test using the fixture dbt project + fixture manifest
 - [x] `.github/workflows/ci.yml` — ruff + mypy + pytest on push/PR
 - [x] CI status badge in README
 
-**Validation:** 67 pytest tests passing and `ruff check .` passing. The external
-dbt project end-to-end run was not completed in this environment because `dbt` was
-not available and the external project did not yet contain `dbt-scribe.yml`.
+**Bugs found and fixed during e2e validation (committed on `fix/real-project-e2e-validation`):**
 
----
-
-### Post-MVP bugfix session `2026-05-08`
-
-Eight issues identified by code review and fixed before first real-project use:
-
-- `yaml_writer.py` — `WriterResult.changed` was always `True`; now compares serialised
-  content before and after merge (dry-run output is now reliable)
-- `config.py` / `cli.py` — `ConfigError` raised by the Pydantic `model_validator`
-  (missing API key) escaped all `except` blocks and caused an unhandled crash; now
-  caught in `_load_project`
-- `cli.py` / `yaml_writer.py` / `docs_writer.py` / `resolver.py` — `"models/"` prefix
-  was hardcoded; `model_root` is now read from `dbt_project.yml#model-paths` (see ADR-012)
-- `yaml_writer.py` — `tests → data_tests` key migration only ran when new tests were
-  added; now runs unconditionally for every column touched, producing consistent YAML
-- `base_generator.py` — retry loop caught all exceptions including non-retryable 4xx
-  errors; non-retryable status codes are now re-raised immediately (see ADR-013)
-- `tests_generator.py` — `[not_null, unique]` PK test order was wrong when only one of
-  the two was missing; rewritten to reconstruct the list in canonical order
-- `resolver.py` — redundant third `_is_relative_to` condition removed
-- `.github/workflows/ci.yml` — `mypy dbt_scribe` step was documented but absent; added
+- `manifest_parser`: empty `columns` dict when no YAML exists at compile time →
+  sqlglot fallback with multi-dialect cascade (ADR-014)
+- `manifest_parser`: BigQuery backtick quoting rejected by sqlglot without dialect hint
+- `analyzer`: all `*_id` columns typed as PK — fixed to only designate PK when a single
+  `*_id` column exists in the model
+- `analyzer`: `Layer.UNKNOWN` on `mart/` folder (vs configured `marts/`) — fixed with
+  alternate spelling fallbacks (ADR-016)
+- `docs_generator`: four-section mart template ignored by LLM — fixed by assembling
+  structure in Python (ADR-015)
+- `docs_generator`: markdown fences in LLM JSON responses causing parse errors
+- `tests_generator`: wrong test format (`{test: not_null}`) — fixed with sanitizer +
+  correct dbt 1.10.5+ `arguments:` format
+- `tests_generator`: `StopIteration` crash in `_ensure_primary_key_tests`
+- `tests_generator`: `dbt_utils` tests generated despite not being requested
+- Nullable timestamps (`delivered_at`, `picked_up_at`) incorrectly getting `not_null`
+- Environment setup: `ANTHROPIC_API_KEY` must be in `~/.zprofile` on Mac, not `~/.zshrc`
 
 ---
 
 ## Backlog (Phase 2+)
 
+- Update fixture `manifest.json` in `tests/` to cover BigQuery adapter + empty columns dict
+- Add regression tests for all bugs fixed during e2e validation
 - `ruamel.yaml` migration (currently using `PyYAML` for Phase 1 simplicity)
 - Singular test generation (marts)
 - Cache LLM (SHA-256 compiled_sql + config_fingerprint)
 - `--format json | markdown` for audit
 - Manifest staleness warning
 - PyPI publication
+- Add `default_contact` field to `DocsConfig` (referenced in CDC but missing from implementation)
+- Update default model in `dbt-scribe.yml` template to `claude-sonnet-4-6` (4.x generation,
+  no date suffix) — `claude-sonnet-4-20250514` is deprecated

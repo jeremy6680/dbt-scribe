@@ -20,11 +20,11 @@ prompts (structured JSON, temperature 0.2), making the abstraction natural.
 
 **Providers:**
 
-| Provider             | Default model              | Environment variable  | SDK package      |
-|----------------------|----------------------------|-----------------------|------------------|
-| `anthropic` (default)| `claude-sonnet-4-20250514` | `ANTHROPIC_API_KEY`   | `anthropic`      |
-| `openai`             | `gpt-4o`                   | `OPENAI_API_KEY`      | `openai`         |
-| `google`             | `gemini-2.5-pro`           | `GOOGLE_API_KEY`      | `google-genai`   |
+| Provider              | Default model              | Environment variable | SDK package    |
+| --------------------- | -------------------------- | -------------------- | -------------- |
+| `anthropic` (default) | `claude-sonnet-4-20250514` | `ANTHROPIC_API_KEY`  | `anthropic`    |
+| `openai`              | `gpt-4o`                   | `OPENAI_API_KEY`     | `openai`       |
+| `google`              | `gemini-2.5-pro`           | `GOOGLE_API_KEY`     | `google-genai` |
 
 **Note on Google SDK:** The originally planned `google-generativeai` package was
 deprecated before implementation. The `google-genai` package (Google's replacement,
@@ -102,6 +102,7 @@ changes (new patterns, new `default_owner`, new thresholds), cached results may 
 longer match the expected output even if the SQL is unchanged.
 
 **Implementation:**
+
 ```python
 config_fingerprint = json.dumps({
     "llm": config.llm.model_dump(),
@@ -223,6 +224,29 @@ with a generated inline description.
 
 ---
 
+## ADR-011 — Run from dbt project root, no `--project-dir` flag in V1
+
+**Date:** 2026-05-07  
+**Status:** Accepted
+
+**Decision:** `dbt-scribe` must be invoked from the dbt project root directory.
+No `--project-dir` flag is provided in V1.
+
+**Rationale:** Keeps all path resolution relative to `os.getcwd()`, consistent with
+how `dbt` itself works. Simpler bootstrap logic.
+
+**Consequence:** The bootstrap check validates `dbt_project.yml` in the current
+directory and exits with a clear error if it is absent.
+
+**Alternative rejected:** Auto-discovery (walking up parent directories to find
+`dbt_project.yml`). Rejected because implicit behavior is hard to debug and
+could produce surprising results in nested project structures.
+
+**V2:** A `--project-dir` flag will be added to support CI workflows that invoke
+tools from a repository root that is not the dbt project root.
+
+---
+
 ## ADR-012 — `model_root` read from `dbt_project.yml`, not hardcoded
 
 **Date:** 2026-05-08  
@@ -274,23 +298,66 @@ from the retry loop.
 
 ---
 
-## ADR-011 — Run from dbt project root, no `--project-dir` flag in V1
+## ADR-014 — sqlglot column extraction fallback when manifest columns dict is empty
 
-**Date:** 2026-05-07  
+**Date:** 2026-05-09
 **Status:** Accepted
 
-**Decision:** `dbt-scribe` must be invoked from the dbt project root directory.
-No `--project-dir` flag is provided in V1.
+**Decision:** When `manifest.json` has an empty `columns` dict for a node (which happens
+when no YAML existed at `dbt compile` time), extract column names from the compiled SQL
+using sqlglot. Try the adapter dialect first (e.g. `bigquery` for backtick quoting), then
+fall back through `bigquery → duckdb → postgres → None` until one succeeds.
 
-**Rationale:** Keeps all path resolution relative to `os.getcwd()`, consistent with
-how `dbt` itself works. Simpler bootstrap logic.
+**Rationale:** dbt only populates `columns` in the manifest from existing YAML declarations.
+On a greenfield project with no YAML, the dict is always empty — which is exactly the
+situation `dbt-scribe` is designed to fix. The multi-dialect fallback handles BigQuery's
+backtick quoting which sqlglot rejects without the correct dialect.
 
-**Consequence:** The bootstrap check validates `dbt_project.yml` in the current
-directory and exits with a clear error if it is absent.
+**Consequence:** `manifest_parser.py` now imports sqlglot. Column names extracted from SQL
+are lowercased and have no data_type or description (None). This is acceptable — the
+generator only needs column names to produce descriptions and tests.
 
-**Alternative rejected:** Auto-discovery (walking up parent directories to find
-`dbt_project.yml`). Rejected because implicit behavior is hard to debug and
-could produce surprising results in nested project structures.
+---
 
-**V2:** A `--project-dir` flag will be added to support CI workflows that invoke
-tools from a repository root that is not the dbt project root.
+## ADR-015 — Mart docs block assembled in Python, not by LLM
+
+**Date:** 2026-05-09
+**Status:** Accepted
+
+**Decision:** The four-section mart docs block structure is assembled in Python in
+`docs_generator._assemble_mart_docs_block()`. The LLM is only asked to provide the
+content of two sections (`description_and_motivation` and `known_limitations`) as
+separate JSON fields. The section headers, blank lines, and stakeholder sections are
+added by code.
+
+**Rationale:** Prompt-only enforcement of the four-section template proved unreliable —
+the LLM consistently returned a `docs_block_content` key with free-form markdown
+regardless of how the prompt was worded. Moving structure to code guarantees the template
+is always respected. The fallback in `_assemble_mart_docs_block` handles the case where
+the LLM still returns `docs_block_content` by using it as the description section content.
+
+**Consequence:** `docs_mart.j2` now requests separate JSON fields. The LLM response shape
+changed from `{model_description, docs_block_content, columns}` to
+`{model_description, description_and_motivation, known_limitations, columns}`.
+The Python assembly guarantees the four sections regardless of LLM output.
+
+---
+
+## ADR-016 — Layer detection uses alternate spelling fallbacks
+
+**Date:** 2026-05-09
+**Status:** Accepted
+
+**Decision:** `detect_layer()` in `analyzer.py` accepts common alternate spellings of
+layer folder names (`mart` vs `marts`, `int` vs `intermediate`) in addition to exact
+config matches.
+
+**Rationale:** Real dbt projects use `mart/` (without s) while the CDC and default config
+specify `marts/`. Requiring an exact match caused `Layer.UNKNOWN` on the test project,
+which silently routed mart models through the staging prompt and bypassed
+`_assemble_mart_docs_block`. Alternate spelling fallbacks make the tool robust to the
+most common naming variations without requiring config changes.
+
+**Consequence:** Users with non-standard folder names should still set `marts_prefix`
+correctly in `dbt-scribe.yml` — the fallbacks are a safety net, not a replacement for
+correct config.
