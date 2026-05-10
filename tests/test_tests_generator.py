@@ -153,8 +153,9 @@ def test_generate_tests_pk_always_gets_unique_and_not_null():
 def test_generate_tests_adds_placeholder_accepted_values_for_enum():
     """_ensure_enum_placeholders injects an accepted_values entry with dbt 1.10.5+ format.
 
-    The placeholder uses the 'arguments' key (not 'values' directly) and includes a
-    'todo' annotation for the engineer to fill in real values.
+    The placeholder uses the 'arguments' key (not 'values' directly). The TODO
+    annotation is added as a YAML comment by yaml_writer, not as a dict key,
+    because unknown keys cause dbt compilation errors.
 
     Uses _model_with_pk() for the same reason as test_generate_tests_pk_always_gets_unique_and_not_null.
     """
@@ -167,7 +168,6 @@ def test_generate_tests_adds_placeholder_accepted_values_for_enum():
             "accepted_values": {
                 "name": "fixtures_fixture_status_accepted_values",
                 "arguments": {"values": []},
-                "todo": "fill with actual enum values from source system",
             }
         }
     ]
