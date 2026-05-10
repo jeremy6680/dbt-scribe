@@ -1,3 +1,4 @@
+# tests/test_docs_generator.py
 from pathlib import Path
 
 import pytest
@@ -7,7 +8,6 @@ from dbt_scribe.config import ScribeConfig
 from dbt_scribe.generators.base_generator import LLMResponse
 from dbt_scribe.generators.docs_generator import DocsResult, generate_docs
 from dbt_scribe.parsers.manifest_parser import parse_manifest
-from dbt_scribe.parsers.yaml_parser import parse_yaml
 
 FIXTURE_PROJECT = Path(__file__).parent / "fixtures" / "dbt_project"
 
@@ -15,7 +15,7 @@ FIXTURE_PROJECT = Path(__file__).parent / "fixtures" / "dbt_project"
 class FakeProvider:
     def __init__(self, content: str):
         self.content = content
-        self.calls = []
+        self.calls: list[tuple[str, str]] = []
 
     def complete(self, system: str, user: str) -> LLMResponse:
         self.calls.append((system, user))
@@ -46,23 +46,14 @@ def _model(name: str):
         for node in parse_manifest(FIXTURE_PROJECT / "target" / "manifest.json")
         if node.name == name
     )
-    yaml_model = None
-    if name == "stg_api_sports__fixtures":
-        yaml_model = parse_yaml(
-            FIXTURE_PROJECT
-            / "models"
-            / "staging"
-            / "api_sports"
-            / "stg_api_sports__fixtures.yml"
-        )
-    return build_enriched_model(manifest_node, yaml_model, _config())
+    return build_enriched_model(manifest_node, None, _config())
 
 
 def test_generate_docs_returns_structured_result():
     provider = FakeProvider(
         """
         {
-          "model_description": "Fixture-level rugby match facts.",
+          "model_description": "Staged rugby fixtures.",
           "docs_block_content": "Long-form docs block.",
           "columns": {
             "league_id": "League identifier.",
@@ -75,7 +66,7 @@ def test_generate_docs_returns_structured_result():
     result = generate_docs(_model("stg_api_sports__fixtures"), provider, _config())
 
     assert result == DocsResult(
-        model_description="Fixture-level rugby match facts.",
+        model_description="Staged rugby fixtures.",
         docs_block_content="Long-form docs block.",
         columns={
             "league_id": "League identifier.",
@@ -89,11 +80,17 @@ def test_generate_docs_returns_structured_result():
 
 
 def test_generate_docs_uses_mart_template_prompt():
+    """Mart models use the four-section Python assembler (ADR-015).
+
+    The LLM response feeds 'docs_block_content' (fallback path in
+    _assemble_mart_docs_block). The assembler always opens with
+    '# Description and Motivation' regardless of the LLM payload.
+    """
     provider = FakeProvider(
         """
         {
           "model_description": "Rugby fixture mart.",
-          "docs_block_content": "## Grain\\nOne row per fixture.",
+          "docs_block_content": "One row per fixture.",
           "columns": {}
         }
         """
@@ -103,8 +100,20 @@ def test_generate_docs_uses_mart_template_prompt():
     result = generate_docs(model, provider, _config())
 
     assert model.layer is Layer.MARTS
-    assert result.docs_block_content.startswith("## Grain")
-    assert "four-section mart documentation template" in provider.calls[0][1]
+
+    # The Python assembler always produces the four-section header first.
+    assert result.docs_block_content.startswith("# Description and Motivation")
+
+    # The LLM's docs_block_content value is used as the description body (fallback).
+    assert "One row per fixture." in result.docs_block_content
+
+    # All four section headers must be present.
+    assert "# Known Limitations" in result.docs_block_content
+    assert "# Business Stakeholder" in result.docs_block_content
+    assert "# Technical Stakeholder" in result.docs_block_content
+
+    # The mart-specific prompt template must have been used.
+    assert "description_and_motivation" in provider.calls[0][1]
 
 
 def test_generate_docs_raises_on_malformed_json():

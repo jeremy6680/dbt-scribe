@@ -70,7 +70,7 @@ def _extract_columns_from_sql(
         return {}
 
     # Build the list of dialects to attempt: adapter dialect first, then fallbacks
-    primary = _ADAPTER_TO_DIALECT.get(adapter_type or "", None)
+    primary = _ADAPTER_TO_DIALECT.get(adapter_type or "")
     dialects_to_try: list[str | None] = []
     if primary:
         dialects_to_try.append(primary)

@@ -1,3 +1,4 @@
+# .github/workflows/ci.yml
 name: CI
 
 on:
@@ -7,6 +8,12 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    # Opt into Node.js 24 for GitHub Actions runners now, ahead of the
+    # forced migration on June 2 2026, to silence the Node 20 deprecation
+    # warning produced by actions/checkout and actions/setup-python.
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Check out repository
