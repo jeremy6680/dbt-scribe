@@ -159,7 +159,6 @@ def _ensure_enum_placeholders(
                     "accepted_values": {
                         "name": f"{model.name}_{column.name}_accepted_values",
                         "arguments": {"values": []},
-                        "todo": "fill with actual enum values from source system",
                     }
                 }
             )

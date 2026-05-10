@@ -37,6 +37,10 @@ def write_yaml(
     _merge_columns(model_yaml, model, docs_result, tests_result, force=force)
 
     content = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+    content = content.replace(
+        "values: []\n",
+        "values: [] # TODO: fill with actual enum values from source system\n",
+    )
     existing_content = path.read_text() if path.exists() else None
     changed = existing_content != content
     if not dry_run and changed:
