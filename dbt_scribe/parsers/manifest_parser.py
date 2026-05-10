@@ -47,6 +47,55 @@ _ADAPTER_TO_DIALECT: dict[str, str] = {
 _FALLBACK_DIALECTS: list[str | None] = ["bigquery", "duckdb", "postgres", None]
 
 
+def _resolve_star_from_cte(statement: exp.Select) -> dict[str, ManifestColumn]:
+    """Resolve SELECT * by extracting columns from the referenced CTE.
+
+    Handles the common dbt staging pattern:
+        WITH renamed AS (SELECT id AS customer_id, first_name FROM source)
+        SELECT * FROM renamed
+
+    Args:
+        statement: The outer SELECT node (which contains the WITH clause).
+
+    Returns:
+        Dict of column name → ManifestColumn from the CTE, or empty dict if
+        the CTE cannot be found or itself uses SELECT *.
+    """
+    from_clause = statement.find(exp.From)
+    if not from_clause:
+        return {}
+
+    table = from_clause.find(exp.Table)
+    if not table:
+        return {}
+
+    cte_name = table.name.lower()
+    with_clause = statement.find(exp.With)
+    if not with_clause:
+        return {}
+
+    for cte in with_clause.expressions:
+        if cte.alias.lower() == cte_name:
+            cte_body = cte.this
+            if not isinstance(cte_body, exp.Select):
+                return {}
+            columns: dict[str, ManifestColumn] = {}
+            for expr in cte_body.expressions:
+                if isinstance(expr, exp.Alias):
+                    col_name = expr.alias.lower()
+                elif isinstance(expr, exp.Column):
+                    col_name = expr.name.lower()
+                else:
+                    continue
+                if col_name:
+                    columns[col_name] = ManifestColumn(
+                        name=col_name, data_type=None, description=None
+                    )
+            return columns
+
+    return {}
+
+
 def _extract_columns_from_sql(
     compiled_sql: str,
     adapter_type: str | None = None,
@@ -95,7 +144,11 @@ def _extract_columns_from_sql(
                 elif isinstance(expression, exp.Column):
                     col_name = expression.name.lower()
                 elif isinstance(expression, exp.Star):
-                    # SELECT * — cannot determine column names statically
+                    # SELECT * FROM <cte> — common dbt staging pattern.
+                    # Try to resolve columns from the referenced CTE before giving up.
+                    cte_columns = _resolve_star_from_cte(statement)
+                    if cte_columns:
+                        return cte_columns
                     return {}
                 else:
                     # Anonymous expression without alias — skip
