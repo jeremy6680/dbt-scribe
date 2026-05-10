@@ -22,7 +22,7 @@ version: 1
 
 llm:
   provider: anthropic
-  # model: claude-sonnet-4-20250514  # defaults to latest Sonnet
+  # model: claude-sonnet-4-6  # defaults to latest Sonnet (4.x generation, no date suffix)
   temperature: 0.2
 
 docs:
@@ -32,6 +32,7 @@ docs:
     - updated_at
     - _fivetran_synced
   default_owner: "Data Team"
+  default_contact: ""
 
 tests:
   pk_patterns:

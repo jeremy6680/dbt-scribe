@@ -25,7 +25,8 @@ def test_llm_config_defaults():
     cfg = LLMConfig()
     assert cfg.provider == "anthropic"
     assert cfg.temperature == 0.2
-    assert cfg.resolved_model == "claude-sonnet-4-20250514"
+    # claude-sonnet-4-6 is the current 4.x generation model (no date suffix)
+    assert cfg.resolved_model == "claude-sonnet-4-6"
 
 
 def test_llm_config_resolved_model_explicit():
@@ -47,6 +48,23 @@ def test_llm_config_api_key_env_var():
     assert LLMConfig(provider="anthropic").api_key_env_var == "ANTHROPIC_API_KEY"
     assert LLMConfig(provider="openai").api_key_env_var == "OPENAI_API_KEY"
     assert LLMConfig(provider="google").api_key_env_var == "GOOGLE_API_KEY"
+
+
+# ── DocsConfig ───────────────────────────────────────────────────────────────
+
+
+def test_docs_config_defaults():
+    cfg = DocsConfig()
+    assert cfg.two_tier is True
+    assert "created_at" in cfg.shared_columns
+    assert cfg.default_owner == "Data Team"
+    # default_contact must exist and default to empty string (referenced in CDC)
+    assert cfg.default_contact == ""
+
+
+def test_docs_config_default_contact_settable():
+    cfg = DocsConfig(default_contact="data@example.com")
+    assert cfg.default_contact == "data@example.com"
 
 
 # ── ScribeConfig defaults ────────────────────────────────────────────────────

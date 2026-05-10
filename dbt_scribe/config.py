@@ -35,7 +35,8 @@ class LLMConfig(BaseModel):
         if self.model:
             return self.model
         defaults = {
-            "anthropic": "claude-sonnet-4-20250514",
+            # claude-sonnet-4-6 is the current 4.x generation model (no date suffix)
+            "anthropic": "claude-sonnet-4-6",
             "openai": "gpt-4o",
             "google": "gemini-2.5-pro",
         }
@@ -56,6 +57,8 @@ class DocsConfig(BaseModel):
     two_tier: bool = True
     shared_columns: list[str] = ["created_at", "updated_at", "_fivetran_synced"]
     default_owner: str = "Data Team"
+    # Contact person or team for this project (used in mart docs stakeholder sections)
+    default_contact: str = ""
 
 
 class TestsConfig(BaseModel):
@@ -111,7 +114,22 @@ class ScribeConfig(BaseModel):
         return self
 
 
-def load_config(path: Path | str, *, check_api_key: bool = True, model_root: str = "models") -> ScribeConfig:
+def load_config(
+    path: Path | str, *, check_api_key: bool = True, model_root: str = "models"
+) -> ScribeConfig:
+    """Load and validate a dbt-scribe.yml configuration file.
+
+    Args:
+        path: Path to the dbt-scribe.yml file.
+        check_api_key: If True, validate that the required API key env var is set.
+        model_root: Root directory for dbt models, passed through to config.
+
+    Returns:
+        A validated ScribeConfig instance.
+
+    Raises:
+        ConfigError: If the file is missing, malformed, or contains invalid values.
+    """
     path = Path(path)
     if not path.exists():
         raise ConfigError(
@@ -144,6 +162,14 @@ def load_config(path: Path | str, *, check_api_key: bool = True, model_root: str
 
 
 def resolve_provider(config: ScribeConfig) -> LLMProvider:
+    """Instantiate the correct LLM provider from the given config.
+
+    Args:
+        config: A validated ScribeConfig instance.
+
+    Returns:
+        An LLMProvider instance ready to make completion requests.
+    """
     from dbt_scribe.generators.providers.anthropic_provider import AnthropicProvider
     from dbt_scribe.generators.providers.google_provider import GoogleProvider
     from dbt_scribe.generators.providers.openai_provider import OpenAIProvider

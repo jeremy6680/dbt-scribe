@@ -323,11 +323,11 @@ Adapter is auto-detected from `manifest.json`. You can override it in `dbt-scrib
 
 ## LLM providers
 
-| Provider              | Default model              | Environment variable |
-| --------------------- | -------------------------- | -------------------- |
-| `anthropic` (default) | `claude-sonnet-4-20250514` | `ANTHROPIC_API_KEY`  |
-| `openai`              | `gpt-4o`                   | `OPENAI_API_KEY`     |
-| `google`              | `gemini-2.5-pro`           | `GOOGLE_API_KEY`     |
+| Provider              | Default model       | Environment variable |
+| --------------------- | ------------------- | -------------------- |
+| `anthropic` (default) | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY`  |
+| `openai`              | `gpt-4o`            | `OPENAI_API_KEY`     |
+| `google`              | `gemini-2.5-pro`    | `GOOGLE_API_KEY`     |
 
 Only the key for your configured provider is required.
 
