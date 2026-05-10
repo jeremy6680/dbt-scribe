@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "LLM-powered documentation and test generation for dbt Core projects"
 readme = "README.md"
 license = { text = "MIT" }
-authors = [{ name = "Jeremy Marchandeau", email = "jerem9911@hotmail.com" }]
+authors = [{ name = "Jeremy Marchandeau", email = "hey@jeremymarchandeau.com" }]
 requires-python = ">=3.11"
 dependencies = [
     "click>=8.1",
