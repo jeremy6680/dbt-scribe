@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dbt-scribe"
-version = "0.1.0"
+version = "0.1.1"
 description = "LLM-powered documentation and test generation for dbt Core projects"
 readme = "README.md"
 license = { text = "MIT" }

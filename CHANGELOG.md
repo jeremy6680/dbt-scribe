@@ -7,6 +7,16 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.1.1] — 2026-05-10
+
+### Fixed
+
+- Default Anthropic model updated to `claude-sonnet-4-6` (4.x generation, no date suffix)
+- Added `default_contact` field to `DocsConfig`
+- Regression tests for all bugs fixed during e2e validation
+
+[0.1.1]: https://github.com/jeremy6680/dbt-scribe/compare/v0.1.0...v0.1.1
+
 ## [0.1.0] — 2026-05-10
 
 Initial public release.
