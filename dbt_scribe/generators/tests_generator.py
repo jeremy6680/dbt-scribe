@@ -56,8 +56,12 @@ def generate_tests(
     return TestsResult(columns=columns)
 
 
+_VALID_TEST_CONFIG_KEYS = {"name", "arguments", "config", "test_name"}
+
+
 def _sanitize_tests(tests: list[Any]) -> list[Any]:
-    """Remove test entries that do not follow the expected dbt dict format.
+    """Remove test entries that do not follow the expected dbt dict format,
+    and strip unknown keys from test config dicts.
 
     Valid test: a dict with exactly one key that is a known standard dbt
     generic test type, whose value is a dict containing at least a `name` key.
@@ -66,6 +70,9 @@ def _sanitize_tests(tests: list[Any]) -> list[Any]:
     - ``{"test": "not_null"}`` — wrong key
     - ``"not_null"`` — bare string
     - ``{"dbt_utils.expression_is_true": {...}}`` — non-standard test type
+
+    Strips unknown config keys (e.g. ``todo``) that the LLM may hallucinate
+    and that dbt would pass as kwargs to the macro, causing a compilation error.
 
     Args:
         tests: Raw list of test entries from the LLM response.
@@ -84,9 +91,11 @@ def _sanitize_tests(tests: list[Any]) -> list[Any]:
         test_type = keys[0]
         if test_type not in valid_types:
             continue
-        if not isinstance(test.get(test_type), dict):
+        config = test.get(test_type)
+        if not isinstance(config, dict):
             continue
-        sanitized.append(test)
+        clean_config = {k: v for k, v in config.items() if k in _VALID_TEST_CONFIG_KEYS}
+        sanitized.append({test_type: clean_config})
     return sanitized
 
 
