@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/jeremy6680/dbt-scribe/actions/workflows/ci.yml/badge.svg)](https://github.com/jeremy6680/dbt-scribe/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![PyPI version](https://badge.fury.io/py/dbt-scribe.svg)](https://pypi.org/project/dbt-scribe/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **LLM-powered documentation and test generation for dbt Core projects.**
@@ -74,6 +75,8 @@ compatible with dbt Core.**
 ```bash
 pip install dbt-scribe
 ```
+
+Available on [PyPI](https://pypi.org/project/dbt-scribe/).
 
 Or install from source for local development:
 
