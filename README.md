@@ -393,7 +393,7 @@ no dbt installation, no warehouse connection, and no API keys.
 | ------------------------- | ----------- | --------------------------------------------------------------- |
 | Phase 1 — MVP             | ✅ Complete | `docs`, `tests`, `generate`, `audit` commands                   |
 | Phase 2 — Portfolio-ready | 🔄 Planned  | Singular SQL tests, LLM cache, `ruamel.yaml` migration, CI mode |
-| Phase 3 — Open source     | 📋 Backlog  | PyPI publication, full documentation, dbt Slack announcement    |
+| Phase 3 — Open source     | ✅ Complete | Published on PyPI, CHANGELOG, GitHub releases                   |
 
 ---
 

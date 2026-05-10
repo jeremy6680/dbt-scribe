@@ -20,11 +20,11 @@ prompts (structured JSON, temperature 0.2), making the abstraction natural.
 
 **Providers:**
 
-| Provider              | Default model              | Environment variable | SDK package    |
-| --------------------- | -------------------------- | -------------------- | -------------- |
-| `anthropic` (default) | `claude-sonnet-4-20250514` | `ANTHROPIC_API_KEY`  | `anthropic`    |
-| `openai`              | `gpt-4o`                   | `OPENAI_API_KEY`     | `openai`       |
-| `google`              | `gemini-2.5-pro`           | `GOOGLE_API_KEY`     | `google-genai` |
+| Provider              | Default model       | Environment variable | SDK package    |
+| --------------------- | ------------------- | -------------------- | -------------- |
+| `anthropic` (default) | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY`  | `anthropic`    |
+| `openai`              | `gpt-4o`            | `OPENAI_API_KEY`     | `openai`       |
+| `google`              | `gemini-2.5-pro`    | `GOOGLE_API_KEY`     | `google-genai` |
 
 **Note on Google SDK:** The originally planned `google-generativeai` package was
 deprecated before implementation. The `google-genai` package (Google's replacement,

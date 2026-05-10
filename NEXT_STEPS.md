@@ -1,17 +1,10 @@
 # NEXT_STEPS.md — dbt-scribe
 
-## Current phase: Phase 1 — Working MVP complete
+## Current phase: Phase 1 — Complete. Published as v0.1.1 on PyPI.
 
-**Goal:** End-to-end generation on a single model using the manifest, with the
-`docs`, `tests`, and `generate` commands. Tested against a real dbt project.
-
+**Published package:** [`dbt-scribe` on PyPI](https://pypi.org/project/dbt-scribe/)  
+**Latest version:** `0.1.1`  
 **Test project:** `/Users/jeremymarchandeau/Code/personal/learning/databird-dbt-exercices/exercice_bonus_module_3/`
-
-**Status:** The code-complete MVP is implemented and covered by fixture-based tests
-that do not require dbt, a warehouse, or live LLM calls. One manual validation item
-remains before calling the project release-ready: run the tool against the external
-dbt exercise project in an environment where `dbt` is installed and the project has
-its own `dbt-scribe.yml`.
 
 ---
 
@@ -225,16 +218,29 @@ mocked providers/generators; no dbt, warehouse, or LLM calls are required.
 
 ---
 
-## Backlog (Phase 2+)
+### Step 11 — Pre-publication fixes + PyPI publish ✅
 
-- Update fixture `manifest.json` in `tests/` to cover BigQuery adapter + empty columns dict
-- Add regression tests for all bugs fixed during e2e validation
-- `ruamel.yaml` migration (currently using `PyYAML` for Phase 1 simplicity)
-- Singular test generation (marts)
-- Cache LLM (SHA-256 compiled_sql + config_fingerprint)
-- `--format json | markdown` for audit
-- Manifest staleness warning
-- PyPI publication
-- Add `default_contact` field to `DocsConfig` (referenced in CDC but missing from implementation)
-- Update default model in `dbt-scribe.yml` template to `claude-sonnet-4-6` (4.x generation,
-  no date suffix) — `claude-sonnet-4-20250514` is deprecated
+- [x] Default Anthropic model updated to `claude-sonnet-4-6` (4.x generation, no date suffix)
+      — `dbt-scribe.yml` init template + `config.py` default + fixture YAML + README
+- [x] `DocsConfig.default_contact` field added (referenced in CDC, missing from implementation)
+- [x] Regression tests written for all 9 bugs fixed during e2e validation (`tests/test_regressions.py`)
+- [x] BigQuery fixture node added to `tests/fixtures/dbt_project/target/manifest.json`
+      (`stg_bq__orders` — empty `columns` dict + backtick SQL) — covers ADR-014 in CI
+- [x] `CHANGELOG.md` created
+- [x] Published to PyPI as `v0.1.0`, then `v0.1.1`
+- [x] GitHub releases created for both tags
+
+**Validation:** 91 pytest tests passing.
+
+---
+
+## Backlog (Phase 2)
+
+- `ruamel.yaml` migration (currently using `PyYAML` — see ADR-004)
+- Singular test generation for mart models
+- LLM response cache keyed on SHA-256(compiled_sql + config_fingerprint) — see ADR-005
+- `--format json | markdown` output option for `audit`
+- Manifest staleness warning (compare `generated_at` to model file mtimes)
+- `--project-dir` flag for CI workflows — see ADR-011
+- Announce on dbt Slack `#tools-and-integrations`
+- Diátaxis documentation (tutorial, how-to, reference pages)

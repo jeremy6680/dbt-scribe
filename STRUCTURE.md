@@ -3,8 +3,8 @@
 Folder and file structure of the `dbt-scribe` repository.
 
 > **Important distinction:** This file documents the structure of the `dbt-scribe`
-> tool's own repository. For the structure that `dbt-scribe` *generates inside a
-> dbt project*, see the "Output structure" section at the bottom.
+> tool's own repository. For the structure that `dbt-scribe` _generates inside a
+> dbt project_, see the "Output structure" section at the bottom.
 
 ---
 
@@ -62,7 +62,7 @@ dbt-scribe/
 │   │       ├── dbt_project.yml
 │   │       ├── dbt-scribe.yml          # Test configuration
 │   │       ├── target/
-│   │       │   └── manifest.json       # Pre-generated manifest — tests do not require dbt installed
+│   │       │   └── manifest.json       # Pre-generated manifest — 4 nodes covering all test scenarios (DuckDB stg/int/mart + BigQuery empty-columns node)
 │   │       └── models/
 │   │           ├── staging/
 │   │           │   └── api_sports/
@@ -85,6 +85,7 @@ dbt-scribe/
 │   ├── test_yaml_writer.py
 │   ├── test_docs_writer.py
 │   ├── test_integration_pipeline.py
+│   ├── test_regressions.py             # Regression tests for all e2e bugs (9 scenarios)
 │   └── test_coverage.py
 │
 ├── .env.example                        # Documents all supported API key variables
@@ -94,7 +95,7 @@ dbt-scribe/
 │       └── ci.yml                      # ruff + mypy + pytest on push and PR (in that order)
 ├── pyproject.toml                      # Package metadata, dependencies, CLI entry point, ruff config
 ├── README.md                           # MVP overview, CI badge, and quickstart commands
-├── CHANGELOG.md                        # Version history (written at first release)
+├── CHANGELOG.md                        # Version history
 ├── CONTEXT.md                          # Project overview for contributors and AI assistants
 ├── DECISIONS.md                        # Architectural decision records (ADRs)
 ├── NEXT_STEPS.md                       # Current development priorities and step-by-step plan
@@ -108,6 +109,7 @@ dbt-scribe/
 ### `dbt_scribe/cli.py`
 
 Entry point for all CLI commands. Responsibilities:
+
 - Defines the Click command group `dbt-scribe`
 - Runs the bootstrap check before every command except `init`
   (validates `dbt_project.yml`, `target/manifest.json`, `dbt-scribe.yml` in CWD)
@@ -132,6 +134,7 @@ environment variable.
 
 The most important parser. Reads `target/manifest.json` and extracts everything
 `dbt-scribe` needs to work:
+
 - Compiled SQL (Jinja2-resolved) — used by the analyzer and sent to the LLM as context
 - Column names and data types as declared in the manifest
 - Fully-qualified node name (`fqn`) — used for layer detection and tag inference
@@ -164,6 +167,7 @@ Layer detection uses the `fqn` from the manifest (e.g.,
 `["project", "staging", "api_sports", "stg_api_sports__fixtures"]` → `staging`).
 
 Column type inference applies, in priority order:
+
 1. Config patterns (`pk_patterns`, `fk_patterns`, `enum_patterns`)
 2. `shared_columns` list from docs config
 3. Name heuristics (`is_`/`has_`/`did_` → boolean, `_at`/`_date` → timestamp)
@@ -223,6 +227,7 @@ existing files, and skips writes when a block for the model already exists.
 ### `tests/fixtures/dbt_project/target/manifest.json`
 
 A hand-crafted or pre-generated manifest that covers all the scenarios tested:
+
 - Staging model with partial YAML (merge mode)
 - Intermediate model with no YAML (create from scratch)
 - Mart model with no YAML (create from scratch, four-section template)
