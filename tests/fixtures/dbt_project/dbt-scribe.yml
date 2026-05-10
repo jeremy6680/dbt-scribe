@@ -2,7 +2,7 @@ version: 1
 
 llm:
   provider: anthropic
-  model: claude-sonnet-4-20250514
+  model: claude-sonnet-4-6
   temperature: 0.2
 
 docs:
@@ -12,6 +12,7 @@ docs:
     - updated_at
     - _fivetran_synced
   default_owner: "Data Team"
+  default_contact: ""
 
 tests:
   pk_patterns:
