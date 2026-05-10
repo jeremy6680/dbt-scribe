@@ -12,7 +12,12 @@
       "unique_id": "model.fixture_project.stg_api_sports__fixtures",
       "name": "stg_api_sports__fixtures",
       "resource_type": "model",
-      "fqn": ["fixture_project", "staging", "api_sports", "stg_api_sports__fixtures"],
+      "fqn": [
+        "fixture_project",
+        "staging",
+        "api_sports",
+        "stg_api_sports__fixtures"
+      ],
       "path": "staging/api_sports/stg_api_sports__fixtures.sql",
       "original_file_path": "models/staging/api_sports/stg_api_sports__fixtures.sql",
       "compiled_code": "with source as (\n    select * from raw.api_sports.fixtures\n),\n\nrenamed as (\n    select\n        fixture_id,\n        league_id,\n        home_team_id,\n        away_team_id,\n        fixture_status,\n        fixture_date,\n        home_score,\n        away_score,\n        is_finished,\n        created_at,\n        updated_at\n    from source\n)\n\nselect * from renamed",
@@ -85,10 +90,15 @@
       "unique_id": "model.fixture_project.int_fixtures_enriched_with_teams",
       "name": "int_fixtures_enriched_with_teams",
       "resource_type": "model",
-      "fqn": ["fixture_project", "intermediate", "rugby", "int_fixtures_enriched_with_teams"],
+      "fqn": [
+        "fixture_project",
+        "intermediate",
+        "rugby",
+        "int_fixtures_enriched_with_teams"
+      ],
       "path": "intermediate/rugby/int_fixtures_enriched_with_teams.sql",
       "original_file_path": "models/intermediate/rugby/int_fixtures_enriched_with_teams.sql",
-      "compiled_code": "with fixtures as (\n    select * from dev.fixture_project.stg_api_sports__fixtures\n),\n\nteams as (\n    select * from dev.fixture_project.stg_api_sports__teams\n),\n\nenriched as (\n    select\n        f.fixture_id,\n        f.league_id,\n        f.fixture_status,\n        f.fixture_date,\n        f.home_score,\n        f.away_score,\n        f.is_finished,\n        ht.team_name as home_team_name,\n        at.team_name as away_team_name,\n        (f.home_score + f.away_score) as total_score,\n        f.created_at,\n        f.updated_at\n    from fixtures f\n    left join teams ht on f.home_team_id = ht.team_id\n    left join teams at on f.away_team_id = at.team_id\n)\n\nselect * from enriched",
+      "compiled_code": "with fixtures as (\n    select * from dev.fixture_project.stg_api_sports__fixtures\n),\n\nteams as (\n    select * from dev.fixture_project.stg_api_sports__teams\n),\n\nenriched as (\n    select\n        fixtures.fixture_id,\n        fixtures.league_id,\n        fixtures.fixture_status,\n        fixtures.fixture_date,\n        home_teams.team_name as home_team_name,\n        away_teams.team_name as away_team_name,\n        fixtures.home_score,\n        fixtures.away_score,\n        fixtures.home_score + fixtures.away_score as total_score,\n        fixtures.is_finished,\n        fixtures.created_at,\n        fixtures.updated_at\n    from fixtures\n    left join teams as home_teams on fixtures.home_team_id = home_teams.team_id\n    left join teams as away_teams on fixtures.away_team_id = away_teams.team_id\n)\n\nselect * from enriched",
       "columns": {
         "fixture_id": {
           "name": "fixture_id",
@@ -110,21 +120,6 @@
           "description": "",
           "data_type": "timestamp"
         },
-        "home_score": {
-          "name": "home_score",
-          "description": "",
-          "data_type": "integer"
-        },
-        "away_score": {
-          "name": "away_score",
-          "description": "",
-          "data_type": "integer"
-        },
-        "is_finished": {
-          "name": "is_finished",
-          "description": "",
-          "data_type": "boolean"
-        },
         "home_team_name": {
           "name": "home_team_name",
           "description": "",
@@ -135,10 +130,25 @@
           "description": "",
           "data_type": "varchar"
         },
+        "home_score": {
+          "name": "home_score",
+          "description": "",
+          "data_type": "integer"
+        },
+        "away_score": {
+          "name": "away_score",
+          "description": "",
+          "data_type": "integer"
+        },
         "total_score": {
           "name": "total_score",
           "description": "",
           "data_type": "integer"
+        },
+        "is_finished": {
+          "name": "is_finished",
+          "description": "",
+          "data_type": "boolean"
         },
         "created_at": {
           "name": "created_at",
@@ -239,6 +249,23 @@
         "materialized": "table",
         "tags": []
       }
+    },
+    "model.fixture_project.stg_bq__orders": {
+      "unique_id": "model.fixture_project.stg_bq__orders",
+      "name": "stg_bq__orders",
+      "resource_type": "model",
+      "fqn": ["fixture_project", "staging", "bq", "stg_bq__orders"],
+      "path": "staging/bq/stg_bq__orders.sql",
+      "original_file_path": "models/staging/bq/stg_bq__orders.sql",
+      "compiled_code": "select\n  `order_id`,\n  `customer_id`,\n  `order_status`,\n  `created_at`,\n  `delivered_at`\nfrom `my_project`.`raw`.`orders`",
+      "columns": {},
+      "depends_on": {
+        "nodes": []
+      },
+      "config": {
+        "materialized": "view",
+        "tags": []
+      }
     }
   },
   "sources": {},
@@ -246,13 +273,16 @@
   "metrics": {},
   "selectors": {},
   "parent_map": {
-    "model.fixture_project.stg_api_sports__fixtures": ["source.fixture_project.api_sports.fixtures"],
+    "model.fixture_project.stg_api_sports__fixtures": [
+      "source.fixture_project.api_sports.fixtures"
+    ],
     "model.fixture_project.int_fixtures_enriched_with_teams": [
       "model.fixture_project.stg_api_sports__fixtures"
     ],
     "model.fixture_project.fixtures": [
       "model.fixture_project.int_fixtures_enriched_with_teams"
-    ]
+    ],
+    "model.fixture_project.stg_bq__orders": []
   },
   "child_map": {
     "model.fixture_project.stg_api_sports__fixtures": [
@@ -261,6 +291,7 @@
     "model.fixture_project.int_fixtures_enriched_with_teams": [
       "model.fixture_project.fixtures"
     ],
-    "model.fixture_project.fixtures": []
+    "model.fixture_project.fixtures": [],
+    "model.fixture_project.stg_bq__orders": []
   }
 }
