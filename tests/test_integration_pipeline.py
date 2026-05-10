@@ -40,6 +40,7 @@ def test_generate_dry_run_runs_full_fixture_pipeline_without_writes(tmp_path, mo
         result = CliRunner().invoke(cli, ["generate", "--target", "models/", "--dry-run"])
 
     assert result.exit_code == 0, result.output
-    assert "Summary: generate processed 3 model(s) (dry-run)." in result.output
+    # 4 models: 3 original + stg_bq__orders (BigQuery regression fixture node)
+    assert "Summary: generate processed 4 model(s) (dry-run)." in result.output
     assert not (project / "models" / "marts" / "rugby" / "fixtures.yml").exists()
     assert not (project / "models" / "marts" / "rugby" / "_rugby__docs.md").exists()

@@ -14,15 +14,29 @@ def _nodes():
 def test_resolve_target_project_root_returns_all_models():
     nodes = resolve_target(".", _nodes())
 
+    # 4 nodes: the 3 original DuckDB models + stg_bq__orders (BigQuery regression fixture)
     assert {node.name for node in nodes} == {
         "stg_api_sports__fixtures",
         "int_fixtures_enriched_with_teams",
         "fixtures",
+        "stg_bq__orders",
     }
 
 
 def test_resolve_target_directory_filters_by_model_path():
+    # staging/ matches both stg_api_sports__fixtures (staging/api_sports/) and
+    # stg_bq__orders (staging/bq/) — order follows manifest insertion order
     nodes = resolve_target("models/staging", _nodes())
+
+    assert {node.name for node in nodes} == {
+        "stg_api_sports__fixtures",
+        "stg_bq__orders",
+    }
+
+
+def test_resolve_target_subdirectory_filters_precisely():
+    # Narrower target: only the api_sports sub-folder
+    nodes = resolve_target("models/staging/api_sports", _nodes())
 
     assert [node.name for node in nodes] == ["stg_api_sports__fixtures"]
 

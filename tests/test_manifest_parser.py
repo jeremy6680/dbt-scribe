@@ -10,7 +10,8 @@ FIXTURE_MANIFEST = (
 def test_parse_manifest_returns_model_nodes_only():
     nodes = parse_manifest(FIXTURE_MANIFEST)
 
-    assert len(nodes) == 3
+    # 4 nodes: 3 original DuckDB nodes + 1 BigQuery regression fixture (stg_bq__orders)
+    assert len(nodes) == 4
     assert all(isinstance(node, ManifestNode) for node in nodes)
     assert {node.resource_type for node in nodes} == {"model"}
 
