@@ -21,12 +21,14 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock
 
-import pytest
-
-from dbt_scribe.analyzer import ColumnType, Layer, build_enriched_model, detect_layer, infer_column_type
-from dbt_scribe.config import ConventionsConfig, ScribeConfig, TestsConfig
+from dbt_scribe.analyzer import (
+    ColumnType,
+    Layer,
+    build_enriched_model,
+    detect_layer,
+)
+from dbt_scribe.config import ScribeConfig
 from dbt_scribe.generators.tests_generator import (
-    TestsResult,
     _ensure_primary_key_tests,
     _parse_json_response,
     _sanitize_tests,
