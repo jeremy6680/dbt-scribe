@@ -22,15 +22,42 @@ column blocks, four-section mart template.
 
 Existing tools don't fully solve this:
 
-| Tool           | Limitation                                    |
-| -------------- | --------------------------------------------- |
-| `dbt-osmosis`  | Mechanical propagation — no LLM understanding |
-| `dbt-codegen`  | Generates empty boilerplate only              |
-| `dbt Assist`   | Cloud-only, paid, not configurable            |
-| `dbt-coverage` | Measures coverage but generates nothing       |
+| Tool                | Limitation                                                               |
+| ------------------- | ------------------------------------------------------------------------ |
+| `dbt-osmosis`       | Mechanical propagation — no LLM understanding                            |
+| `dbt-codegen`       | Generates empty boilerplate only                                         |
+| `dbt Assist`        | Cloud-only, paid, not configurable                                       |
+| `dbt-coverage`      | Measures coverage but generates nothing                                  |
+| dbt Power User ext. | VS Code only, AI features require a paid SaaS subscription (Altimate AI) |
 
-`dbt-scribe` fills the gap: **LLM-powered generation, local, configurable per project,
-compatible with dbt Core.**
+`dbt-scribe` fills the gap: **LLM-powered generation, headless, CI/CD-ready,
+configurable per project, compatible with dbt Core.**
+
+---
+
+## How dbt-scribe compares
+
+Several tools exist to help with dbt documentation and test generation.
+Here is where `dbt-scribe` stands:
+
+| Capability                               | dbt-scribe | dbt Power User | dbt Assist | dbt-osmosis |
+| ---------------------------------------- | :--------: | :------------: | :--------: | :---------: |
+| LLM-powered generation                   |     ✅     |       ✅       |     ✅     |     ❌      |
+| Works without VS Code                    |     ✅     |       ❌       |     ❌     |     ✅      |
+| CI/CD integration (exit code)            |     ✅     |       ❌       |     ❌     |     ❌      |
+| Your own API key (no SaaS)               |     ✅     | ❌ (paid tier) | ❌ (paid)  |     n/a     |
+| Multi-provider (Anthropic/OpenAI/Google) |     ✅     |       ❌       |     ❌     |     n/a     |
+| Config versioned with project            |     ✅     |       ❌       |     ❌     |     ✅      |
+| Convention-aware (layers, PK/FK, enums)  |     ✅     |   ⚠️ partial   | ⚠️ partial |     ❌      |
+| Audit without generation                 |     ✅     |       ❌       |     ❌     |     ❌      |
+| Open source (MIT)                        |     ✅     |       ❌       |     ❌     |     ✅      |
+
+**dbt Power User** is an excellent IDE extension for individual developers who want
+UI-assisted generation while editing in VS Code. `dbt-scribe` targets a different
+workflow: automated quality enforcement that runs in a terminal, a Docker container,
+or a CI pipeline — with no IDE dependency and no third-party SaaS subscription.
+
+The two tools are complementary, not mutually exclusive.
 
 ---
 
