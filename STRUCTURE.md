@@ -29,6 +29,12 @@ dbt-scribe/
 │   │                                   # YamlModel + YamlColumn dataclasses
 │   │                                   # Detects filled descriptions incl. {{ doc("...") }} refs
 │   │
+│   ├── catalog/
+│   │   ├── __init__.py
+│   │   └── catalog_parser.py           # Reads optional target/catalog.json → CatalogNode dict
+│   │                                   # CatalogNode + CatalogColumn dataclasses
+│   │                                   # Model nodes only; lowercases warehouse column names
+│   │
 │   ├── generators/
 │   │   ├── __init__.py
 │   │   ├── base_generator.py           # LLMProvider ABC + LLMResponse dataclass + retry logic
@@ -62,7 +68,8 @@ dbt-scribe/
 │   │       ├── dbt_project.yml
 │   │       ├── dbt-scribe.yml          # Test configuration
 │   │       ├── target/
-│   │       │   └── manifest.json       # Pre-generated manifest — 4 nodes covering all test scenarios (DuckDB stg/int/mart + BigQuery empty-columns node)
+│   │       │   ├── manifest.json       # Pre-generated manifest — 4 nodes covering all test scenarios (DuckDB stg/int/mart + BigQuery empty-columns node)
+│   │       │   └── catalog.json        # Pre-generated catalog — matching model nodes + warehouse column metadata
 │   │       └── models/
 │   │           ├── staging/
 │   │           │   └── api_sports/
@@ -76,6 +83,9 @@ dbt-scribe/
 │   │                   └── fixtures.sql                        # No .yml — tests create-from-scratch
 │   ├── test_config.py
 │   ├── test_bootstrap.py
+│   ├── catalog/
+│   │   ├── __init__.py
+│   │   └── test_catalog_parser.py      # Optional catalog.json parser coverage
 │   ├── test_manifest_parser.py
 │   ├── test_yaml_parser.py
 │   ├── test_analyzer.py
@@ -156,6 +166,17 @@ It extracts model descriptions, column descriptions, and existing generic tests
 from both `data_tests` and `tests`. `is_description_set()` treats any non-empty
 description, including a `{{ doc(...) }}` reference, as already filled.
 
+### `dbt_scribe/catalog/catalog_parser.py`
+
+Reads optional `target/catalog.json` output from `dbt docs generate`. Missing files
+return `None`, allowing later catalog/audit flows to fall back to manifest-only mode.
+
+Only `nodes` are parsed; `sources` are ignored. Only node `unique_id` values beginning
+with `model.` are included, matching manifest parser filtering. Column names are
+lowercased for consistent matching with manifest/YAML columns, while warehouse
+`type` and `comment` values are preserved as `CatalogColumn.data_type` and
+`CatalogColumn.comment`. Missing or null comments become empty strings.
+
 ### `dbt_scribe/analyzer.py`
 
 Takes a `ManifestNode` and produces an `EnrichedModel` with typed columns.
@@ -205,6 +226,10 @@ strict JSON into a `TestsResult`. It also applies deterministic safeguards for
 generic tests: primary-key columns receive `not_null` and `unique`, and enum
 columns receive an `accepted_values` placeholder if the LLM omits one.
 
+LLM output is sanitized to keep only standard dbt generic tests and known-safe
+configuration keys. Both accepted values formats are preserved: legacy direct
+`values: [...]` and dbt 1.10.5+ `arguments: {values: [...]}`.
+
 ### `dbt_scribe/writers/yaml_writer.py`
 
 Writes model YAML files and returns a `WriterResult` with path, changed flag, and
@@ -234,6 +259,13 @@ A hand-crafted or pre-generated manifest that covers all the scenarios tested:
 - Columns of all inferred types (pk, fk, enum, timestamp, boolean, metric, shared)
 
 Tests never require `dbt` to be installed or a warehouse connection to be active.
+
+### `tests/fixtures/dbt_project/target/catalog.json`
+
+A hand-crafted catalog fixture matching the manifest model `unique_id` values. It
+contains BigQuery-style warehouse column types, comments, absent/null comment cases,
+and a catalog-only extra column used to verify that catalog metadata can supplement
+manifest/YAML metadata.
 
 ---
 

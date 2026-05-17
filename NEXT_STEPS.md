@@ -257,29 +257,32 @@ mocked providers/generators; no dbt, warehouse, or LLM calls are required.
 
 ---
 
-### Step 12 — Catalog parser `step/12-catalog-parser`
+### Step 12 — Catalog parser `step/12-catalog-parser` ✅
 
 Parse `target/catalog.json` into typed dataclasses. Optional — graceful fallback
 when file is absent.
 
-- [ ] `dbt_scribe/catalog/__init__.py`
-- [ ] `dbt_scribe/catalog/catalog_parser.py`
+- [x] `dbt_scribe/catalog/__init__.py`
+- [x] `dbt_scribe/catalog/catalog_parser.py`
   - `parse_catalog(catalog_path: Path) -> dict[str, CatalogNode] | None`
     Returns None if file does not exist.
   - `CatalogNode` dataclass: `unique_id`, `name`, `columns: list[CatalogColumn]`
   - `CatalogColumn` dataclass: `name`, `data_type`, `comment`
   - Key: `unique_id` matches manifest node unique_id format
     (`model.<project>.<model_name>`)
-- [ ] `tests/catalog/__init__.py`
-- [ ] `tests/catalog/test_catalog_parser.py`
+- [x] `tests/catalog/__init__.py`
+- [x] `tests/catalog/test_catalog_parser.py`
   - catalog.json present → parses correctly, returns dict keyed by unique_id
   - catalog.json absent → returns None
   - Columns extracted correctly (name, data_type)
   - Unknown/extra keys in catalog.json do not raise
-- [ ] Add `tests/fixtures/dbt_project/target/catalog.json`
+- [x] Add `tests/fixtures/dbt_project/target/catalog.json`
       — minimal catalog fixture matching existing manifest fixture nodes
+- [x] CI fix discovered during validation: preserve legacy
+      `accepted_values.values` in `tests_generator` sanitizer
 
-**Validation:** 91 existing tests still pass + new catalog parser tests
+**Validation:** 102 pytest tests passing. Catalog parser tests: 15 passing.
+Ruff clean for `dbt_scribe/catalog/`, `tests/catalog/`, and touched generator file.
 
 ---
 

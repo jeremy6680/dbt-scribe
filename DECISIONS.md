@@ -440,3 +440,26 @@ are not surprised by a new install pattern when OpenMetadata lands.
 
 **Note:** For v0.2.0, `pip install dbt-scribe` and `pip install dbt-scribe[catalog]`
 are functionally identical. The distinction becomes meaningful in v0.3.x.
+
+---
+
+## ADR-021 — Preserve legacy `accepted_values.values` during test sanitization
+
+**Date:** 2026-05-17
+**Status:** Accepted
+
+**Decision:** The generic test sanitizer preserves `values` as an allowed
+configuration key for `accepted_values` tests, in addition to the dbt 1.10.5+
+`arguments` format.
+
+**Rationale:** v0.1.x prompts prefer the newer `arguments: {values: [...]}` syntax,
+but existing tests and possible LLM responses may still return the legacy direct
+`values: [...]` form. The sanitizer's job is to remove unsafe or hallucinated keys,
+not to erase valid dbt test arguments. Dropping `values` caused an existing generator
+test to fail during Step 12 full-suite validation.
+
+**Consequence:** `accepted_values` tests are accepted in both forms:
+`{"accepted_values": {"name": "...", "values": [...]}}` and
+`{"accepted_values": {"name": "...", "arguments": {"values": [...]}}}`.
+Future normalization can convert legacy syntax to the canonical `arguments` form,
+but Step 12 keeps the fix minimal and backward-compatible.
