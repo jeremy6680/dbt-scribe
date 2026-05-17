@@ -1,10 +1,12 @@
 # NEXT_STEPS.md — dbt-scribe
 
-## Current phase: Phase 1 — Complete. Published as v0.1.1 on PyPI.
+## Current phase: Phase 2 — v0.2.0 `dbt-scribe catalog`
 
-**Published package:** [`dbt-scribe` on PyPI](https://pypi.org/project/dbt-scribe/)  
-**Latest version:** `0.1.1`  
+**Published package:** [`dbt-scribe` on PyPI](https://pypi.org/project/dbt-scribe/)
+**Latest stable version:** `0.1.1`
+**In development:** `0.2.0`
 **Test project:** `/Users/jeremymarchandeau/Code/personal/learning/databird-dbt-exercices/exercice_bonus_module_3/`
+**`catalog.json` confirmed:** ✅ available at `target/catalog.json`
 
 ---
 
@@ -244,3 +246,236 @@ mocked providers/generators; no dbt, warehouse, or LLM calls are required.
 - `--project-dir` flag for CI workflows — see ADR-011
 - Announce on dbt Slack `#tools-and-integrations`
 - Diátaxis documentation (tutorial, how-to, reference pages)
+
+---
+
+## v0.2.0 — `dbt-scribe catalog`
+
+> **Scope:** Coverage audit command with terminal, HTML, and JSON output + CI gate.
+> Read-only. No LLM calls. No file writes.
+> Full spec in CDC v0.2.0 (Claude Desktop project).
+
+---
+
+### Step 12 — Catalog parser `step/12-catalog-parser`
+
+Parse `target/catalog.json` into typed dataclasses. Optional — graceful fallback
+when file is absent.
+
+- [ ] `dbt_scribe/catalog/__init__.py`
+- [ ] `dbt_scribe/catalog/catalog_parser.py`
+  - `parse_catalog(catalog_path: Path) -> dict[str, CatalogNode] | None`
+    Returns None if file does not exist.
+  - `CatalogNode` dataclass: `unique_id`, `name`, `columns: list[CatalogColumn]`
+  - `CatalogColumn` dataclass: `name`, `data_type`, `comment`
+  - Key: `unique_id` matches manifest node unique_id format
+    (`model.<project>.<model_name>`)
+- [ ] `tests/catalog/__init__.py`
+- [ ] `tests/catalog/test_catalog_parser.py`
+  - catalog.json present → parses correctly, returns dict keyed by unique_id
+  - catalog.json absent → returns None
+  - Columns extracted correctly (name, data_type)
+  - Unknown/extra keys in catalog.json do not raise
+- [ ] Add `tests/fixtures/dbt_project/target/catalog.json`
+      — minimal catalog fixture matching existing manifest fixture nodes
+
+**Validation:** 91 existing tests still pass + new catalog parser tests
+
+---
+
+### Step 13 — Coverage engine `step/13-coverage-engine`
+
+Core computation logic. Takes manifest nodes + optional catalog + YAML models
+and produces a typed `CoverageResult`.
+
+- [ ] `dbt_scribe/catalog/coverage_engine.py`
+  - New dataclasses: `ColumnCoverage`, `ModelCoverage`, `LayerCoverage`,
+    `CoverageResult`, `CoverageThresholds`
+  - `compute_coverage(nodes, catalog, yaml_models, config) -> CoverageResult`
+  - Column merge: manifest columns ← supplement with catalog columns if present
+  - Description check: delegates to existing `is_description_set()`
+  - Test count: counts generic tests from existing YamlColumn.tests
+  - Layer grouping: delegates to existing `detect_layer()`
+  - Global scores: weighted average by column count across all models
+- [ ] `tests/catalog/test_coverage_engine.py`
+  - All models fully documented + tested → score = 100%
+  - Model with no YAML → all columns count as undocumented
+  - `catalog.json` present → catalog columns used for totals
+  - `catalog.json` absent → manifest columns used
+  - `{{ doc("...") }}` reference → counted as documented
+  - Model with 0 columns → handled without ZeroDivisionError
+  - Global score is weighted by column count (not simple average)
+  - Per-layer aggregation is correct
+
+**Validation:** cumulative tests passing
+
+---
+
+### Step 14 — Terminal reporter `step/14-terminal-reporter`
+
+Rich table output. Refactors existing `coverage.py` into this module.
+
+- [ ] `dbt_scribe/catalog/reporters/__init__.py`
+- [ ] `dbt_scribe/catalog/reporters/terminal_reporter.py`
+  - `render(result: CoverageResult, layer_filter: str | None = None) -> None`
+  - Header: project name, model count, adapter
+  - Per-layer section: layer name, model table, layer aggregate scores
+  - Per-model row: name, description status (✅/❌), col doc %, test %, score
+  - Global summary table: doc score vs threshold, test score vs threshold, status
+  - Colour coding: green (≥ threshold), amber (within 20 pts), red (> 20 pts below)
+  - All colour signals supplemented with text/icons (WCAG AA)
+  - Compact mode when model count > 20 (hide column detail lists)
+- [ ] `dbt_scribe/coverage.py` — refactored to delegate to `terminal_reporter`
+      (existing public API preserved for backward compat)
+- [ ] `tests/catalog/test_terminal_reporter.py`
+  - Output contains project name and model names
+  - Layer filter respected (only requested layer rendered)
+  - Colour threshold logic tested (green/amber/red conditions)
+  - Zero-model layer handled gracefully
+
+---
+
+### Step 15 — HTML reporter `step/15-html-reporter`
+
+Self-contained HTML report generated via Jinja2.
+
+- [ ] `dbt_scribe/templates/__init__.py` (or `templates/` as package data)
+- [ ] `dbt_scribe/templates/catalog_report.html.j2`
+  - Inline CSS (no external framework)
+  - Vanilla JS for expand/collapse only
+  - Sections: header, global gauges, layer cards, model detail table, footer
+  - Print stylesheet
+  - WCAG 2.1 AA: semantic HTML, no colour-only signaling, sufficient contrast
+- [ ] `dbt_scribe/catalog/reporters/html_reporter.py`
+  - `render(result: CoverageResult, output_path: Path) -> None`
+  - Creates parent directories if needed
+  - Renders template with CoverageResult data
+- [ ] `pyproject.toml` — add `templates/` to `[tool.hatch.build.targets.wheel]`
+      package data (or equivalent for the build backend in use)
+- [ ] `tests/catalog/test_html_reporter.py`
+  - File created at specified path
+  - HTML contains project name, all model names, global scores
+  - No external `src=` or `href=` pointing outside the file
+  - Output path parent created automatically if missing
+
+---
+
+### Step 16 — JSON reporter `step/16-json-reporter`
+
+Machine-readable JSON output for CI pipelines and downstream tooling.
+
+- [ ] `dbt_scribe/catalog/reporters/json_reporter.py`
+  - `render(result: CoverageResult) -> str`
+  - Serializes to the schema defined in CDC §4.2
+  - `generated_at` as ISO 8601 string
+  - `passed` field reflects threshold check result
+- [ ] `tests/catalog/test_json_reporter.py`
+  - Valid JSON (parseable with `json.loads`)
+  - All required top-level keys present
+  - `generated_at` is ISO 8601
+  - `models` array contains one entry per node
+  - `undocumented_columns` and `untested_columns` are lists of strings
+
+---
+
+### Step 17 — CI gate `step/17-ci-gate`
+
+Exit code enforcement when thresholds are not met.
+
+- [ ] `dbt_scribe/catalog/ci_gate.py`
+  - `check(result: CoverageResult, ci_mode: bool) -> int`
+    Returns 0 (pass) or 1 (fail). Does NOT call sys.exit() — caller decides.
+  - `format_failure_message(result: CoverageResult) -> str`
+    Human-readable summary: which threshold(s) failed, by how much.
+- [ ] `tests/catalog/test_ci_gate.py`
+  - 100% branch coverage
+  - ci_mode=False → always returns 0
+  - ci_mode=True, all thresholds met → returns 0
+  - ci_mode=True, doc below threshold → returns 1
+  - ci_mode=True, test below threshold → returns 1
+  - ci_mode=True, both below → returns 1
+  - failure message contains threshold values and actual scores
+
+---
+
+### Step 18 — Wire up CLI `step/18-catalog-cli`
+
+Wire all new modules into the Click CLI. Make `audit` a backward-compatible alias.
+
+- [ ] `dbt_scribe/cli.py`
+  - Add `catalog` command with all options:
+    `--target`, `--output`, `--report-path`, `--threshold-docs`,
+    `--threshold-tests`, `--ci`, `--format`, `--layer`
+  - Make `audit` call `catalog` with `--output terminal --format table`
+    (identical behaviour to v0.1.x)
+  - Use `sys.exit(ci_gate.check(...))` at end of command when `--ci`
+    or `fail_on_threshold: true`
+- [ ] `dbt_scribe/config.py`
+  - Add `CatalogConfig` Pydantic model
+    (`report_path`, `open_after_generate`, `include_catalog`)
+  - `CoverageConfig.fail_on_threshold` — now enforced (was declared but ignored)
+- [ ] `dbt-scribe.yml` init template — add `catalog:` section with defaults
+- [ ] `tests/test_cli_catalog.py`
+  - `catalog` command runs without error on fixture project
+  - `audit` alias produces identical output to `catalog --output terminal`
+  - `--ci` flag triggers exit code check
+  - `--output html` creates file at default path
+  - `--output json` prints valid JSON to stdout
+  - `--layer staging` filters output correctly
+- [ ] End-to-end validation on DataBird bootcamp project:
+  - `dbt-scribe catalog` terminal output looks correct
+  - `dbt-scribe catalog --output html` → open and verify HTML manually
+  - `dbt-scribe catalog --ci` → verify exit code (should be 0 or 1 depending
+    on actual project coverage)
+  - `dbt-scribe audit` → identical to v0.1.x output
+
+---
+
+### Step 19 — Documentation + release `step/19-release-v0.2.0`
+
+- [ ] `CHANGELOG.md` — add `[0.2.0]` section with full feature list
+- [ ] `README.md`
+  - Update commands table (add `catalog`, note `audit` is now an alias)
+  - Add `catalog` section with examples and option reference
+  - Add CI integration section (GitHub Actions snippet)
+  - Update roadmap table
+- [ ] `CONTEXT.md` — update "What this project is" to include catalog command
+- [ ] `NEXT_STEPS.md` — mark v0.2.0 steps complete, add v0.3.0 skeleton
+- [ ] `STRUCTURE.md` — add `catalog/`, `reporters/`, `templates/` to repo tree
+- [ ] `DECISIONS.md` — confirm ADRs 017–020 are present (added before step/12)
+- [ ] PyPI publish `v0.2.0`
+- [ ] GitHub release + tag `v0.2.0`
+
+---
+
+## Backlog (deferred from v0.2.0)
+
+- `--fix` flag for `catalog`: chains `generate` on models below threshold → v0.2.1
+- `ruamel.yaml` migration (currently using `PyYAML` — see ADR-004) → Phase 2
+- Singular test generation for mart models → Phase 2
+- LLM response cache keyed on SHA-256(compiled_sql + config_fingerprint) — ADR-005
+- Manifest staleness warning (compare `generated_at` to model file mtimes)
+- `--project-dir` flag for CI workflows — ADR-011
+- Diátaxis documentation (tutorial, how-to, reference pages)
+- Announce on dbt Slack `#tools-and-integrations`
+
+---
+
+## v0.3.0 — `dbt-scribe quality` (preview)
+
+> Full CDC to be written before development begins.
+
+- `dbt-scribe quality ingest` — parses `run_results.json`, persists to DuckDB
+- `dbt-scribe quality report` — test pass/fail trends over time
+- `dbt-scribe quality gate --ci` — exit code 1 on regression vs last run
+- Persistent store: `~/.dbt-scribe/quality.duckdb`
+- Flaky test detection (failure rate > configurable threshold)
+- Shared HTML template infrastructure with `catalog`
+
+## v0.3.x — OpenMetadata integration (preview)
+
+> Gated behind `pip install dbt-scribe[openmetadata]`.
+
+- `dbt-scribe catalog --output openmetadata`
+- `dbt-scribe quality --output openmetadata`
+- Pushes coverage + test run history to self-hosted OpenMetadata via REST API
