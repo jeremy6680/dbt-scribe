@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dbt-scribe catalog report - {{ result.project_name }}</title>
+  <style>
+    :root {
+      --green: #2d6a4f;
+      --amber: #b5770a;
+      --red: #9d1f1f;
+      --grey: #6c757d;
+      --ink: #17212b;
+      --muted: #52616f;
+      --line: #d8dee4;
+      --panel: #ffffff;
+      --soft: #f6f8fa;
+      --bg: #eef2f5;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    a { color: #0b5cad; }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0;
+    }
+
+    header, section, footer {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 20px;
+      padding: 24px;
+    }
+
+    h1, h2, h3 {
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.35rem; margin-bottom: 16px; }
+    h3 { font-size: 1rem; }
+
+    .meta {
+      display: grid;
+      gap: 10px 20px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin: 20px 0 0;
+      padding: 0;
+    }
+
+    .meta div {
+      min-width: 0;
+    }
+
+    .meta dt {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin: 0 0 2px;
+      text-transform: uppercase;
+    }
+
+    .meta dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .score-grid, .layer-grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .indicator, .layer-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .indicator strong {
+      display: block;
+      font-size: 2rem;
+      line-height: 1;
+      margin: 10px 0;
+    }
+
+    .status {
+      align-items: center;
+      border-radius: 999px;
+      color: #ffffff;
+      display: inline-flex;
+      font-size: 0.78rem;
+      font-weight: 800;
+      gap: 6px;
+      letter-spacing: 0.02em;
+      padding: 4px 9px;
+    }
+
+    .pass { background: var(--green); }
+    .warn { background: var(--amber); color: #111111; }
+    .fail { background: var(--red); }
+    .na { background: var(--grey); }
+
+    .text-pass { color: var(--green); }
+    .text-warn { color: #855500; }
+    .text-fail { color: var(--red); }
+    .text-na { color: var(--grey); }
+
+    .layer-card p, .indicator p {
+      color: var(--muted);
+      margin: 8px 0 0;
+    }
+
+    .layer-stats {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 14px;
+    }
+
+    .layer-stats span {
+      background: var(--soft);
+      border-radius: 6px;
+      display: block;
+      padding: 10px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+      min-width: 860px;
+      width: 100%;
+    }
+
+    caption {
+      color: var(--muted);
+      margin-bottom: 12px;
+      text-align: left;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: var(--soft);
+      color: #24313d;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+    }
+
+    .model-name {
+      font-weight: 800;
+    }
+
+    .badge {
+      background: #e9eef3;
+      border-radius: 999px;
+      color: #283846;
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-left: 8px;
+      padding: 2px 8px;
+    }
+
+    .progress {
+      background: #e7ebef;
+      border-radius: 999px;
+      height: 10px;
+      margin-top: 8px;
+      overflow: hidden;
+      width: 160px;
+    }
+
+    .bar {
+      display: block;
+      height: 100%;
+    }
+
+    details {
+      max-width: 360px;
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .detail-grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 10px;
+    }
+
+    ul {
+      margin: 6px 0 0;
+      padding-left: 20px;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .actions {
+      margin-bottom: 12px;
+      text-align: right;
+    }
+
+    button {
+      background: #24313d;
+      border: 0;
+      border-radius: 6px;
+      color: #ffffff;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      padding: 8px 12px;
+    }
+
+    footer {
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+    }
+
+    code {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 2px 6px;
+    }
+
+    @media (max-width: 760px) {
+      .page { width: min(100% - 20px, 1180px); padding: 16px 0; }
+      header, section, footer { padding: 18px; }
+      .meta, .score-grid, .layer-grid, .detail-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 1.55rem; }
+    }
+
+    @media print {
+      body { background: #ffffff; }
+      .page { width: 100%; padding: 0; }
+      header, section, footer { break-inside: avoid; border-color: #999999; }
+      button { display: none; }
+      a { color: #000000; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>{{ result.project_name }} catalog coverage</h1>
+      <dl class="meta">
+        <div>
+          <dt>Generated at</dt>
+          <dd><time datetime="{{ result.generated_at.isoformat() }}">{{ result.generated_at.isoformat() }}</time></dd>
+        </div>
+        <div>
+          <dt>Adapter</dt>
+          <dd>{{ result.adapter }}</dd>
+        </div>
+        <div>
+          <dt>dbt-scribe version</dt>
+          <dd>{{ result.dbt_scribe_version }}</dd>
+        </div>
+        <div>
+          <dt>Command</dt>
+          <dd><code>{{ command }}</code></dd>
+        </div>
+      </dl>
+    </header>
+
+    <section aria-labelledby="global-scores">
+      <h2 id="global-scores">Global scores</h2>
+      <div class="score-grid">
+        <article class="indicator">
+          <h3>{{ global_doc.label }}</h3>
+          <strong class="text-{{ global_doc.status_class }}">{{ global_doc.score_text }}</strong>
+          <span class="status {{ global_doc.status_class }}">{{ global_doc.status_icon }} {{ global_doc.status_label }}</span>
+          <p>Threshold: {{ global_doc.threshold_text }}</p>
+        </article>
+        <article class="indicator">
+          <h3>{{ global_test.label }}</h3>
+          <strong class="text-{{ global_test.status_class }}">{{ global_test.score_text }}</strong>
+          <span class="status {{ global_test.status_class }}">{{ global_test.status_icon }} {{ global_test.status_label }}</span>
+          <p>Threshold: {{ global_test.threshold_text }}</p>
+        </article>
+        <article class="indicator">
+          <h3>Threshold status</h3>
+          <strong class="text-{{ 'pass' if result.passed else 'fail' }}">{{ threshold_status }}</strong>
+          <span class="status {{ 'pass' if result.passed else 'fail' }}">{{ '✅ PASS' if result.passed else '❌ FAIL' }}</span>
+          <p>Docs >= {{ result.thresholds.min_doc_coverage | round | int }}%, tests >= {{ result.thresholds.min_test_coverage | round | int }}%</p>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="layer-breakdown">
+      <h2 id="layer-breakdown">Layer breakdown</h2>
+      <div class="layer-grid">
+        {% for layer in layers %}
+        <article class="layer-card">
+          <h3>{{ layer.layer.value | title }}</h3>
+          <p>{{ layer.model_count }} model{{ '' if layer.model_count == 1 else 's' }}</p>
+          <div class="layer-stats">
+            <span><b>Docs</b><br>{{ layer.column_doc_pct | round | int }}%</span>
+            <span><b>Tests</b><br>{{ layer.test_pct | round | int }}%</span>
+          </div>
+        </article>
+        {% else %}
+        <article class="layer-card">
+          <h3>No layers</h3>
+          <p>No models were included in this report.</p>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section aria-labelledby="model-detail">
+      <h2 id="model-detail">Model detail</h2>
+      <div class="actions">
+        <button type="button" id="toggle-details" aria-expanded="false">Expand all details</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <caption>Documentation and test coverage by model.</caption>
+          <thead>
+            <tr>
+              <th scope="col">Model</th>
+              <th scope="col">Description</th>
+              <th scope="col">Column docs</th>
+              <th scope="col">Tests</th>
+              <th scope="col">Missing coverage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for model in models %}
+            <tr>
+              <th scope="row">
+                <span class="model-name">{{ model.name }}</span>
+                <span class="badge">{{ model.layer }}</span>
+              </th>
+              <td>
+                {% if model.has_description %}
+                <span class="status pass">✅ present</span>
+                {% else %}
+                <span class="status fail">❌ missing</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="text-{{ model.doc_metric.status_class }}">{{ model.doc_metric.count_text }}</span>
+                <span class="status {{ model.doc_metric.status_class }}">{{ model.doc_metric.status_icon }} {{ model.doc_metric.status_label }}</span>
+                <div class="progress" aria-label="Column documentation {{ model.doc_metric.score_text }}">
+                  <span class="bar {{ model.doc_metric.status_class }}" style="width: {{ model.doc_metric.progress }}%"></span>
+                </div>
+              </td>
+              <td>
+                <span class="text-{{ model.test_metric.status_class }}">{{ model.test_metric.count_text }}</span>
+                <span class="status {{ model.test_metric.status_class }}">{{ model.test_metric.status_icon }} {{ model.test_metric.status_label }}</span>
+                <div class="progress" aria-label="Column tests {{ model.test_metric.score_text }}">
+                  <span class="bar {{ model.test_metric.status_class }}" style="width: {{ model.test_metric.progress }}%"></span>
+                </div>
+              </td>
+              <td>
+                <details>
+                  <summary>Show missing columns</summary>
+                  <div class="detail-grid">
+                    <div>
+                      <b>Undocumented</b>
+                      {% if model.undocumented_columns %}
+                      <ul>
+                        {% for column in model.undocumented_columns %}
+                        <li>{{ column }}</li>
+                        {% endfor %}
+                      </ul>
+                      {% else %}
+                      <p class="empty">None</p>
+                      {% endif %}
+                    </div>
+                    <div>
+                      <b>Untested</b>
+                      {% if model.untested_columns %}
+                      <ul>
+                        {% for column in model.untested_columns %}
+                        <li>{{ column }}</li>
+                        {% endfor %}
+                      </ul>
+                      {% else %}
+                      <p class="empty">None</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </details>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="empty">No models were included in this report.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      <span>Generated by <a href="https://github.com/jeremy6680/dbt-scribe" rel="noopener">dbt-scribe</a>.</span>
+      <span><code>{{ command }}</code></span>
+    </footer>
+  </main>
+  <script>
+    (function () {
+      var button = document.getElementById("toggle-details");
+      if (!button) return;
+      button.addEventListener("click", function () {
+        var details = document.querySelectorAll("details");
+        var expand = button.getAttribute("aria-expanded") !== "true";
+        details.forEach(function (detail) { detail.open = expand; });
+        button.setAttribute("aria-expanded", String(expand));
+        button.textContent = expand ? "Collapse all details" : "Expand all details";
+      });
+    })();
+  </script>
+</body>
+</html>
