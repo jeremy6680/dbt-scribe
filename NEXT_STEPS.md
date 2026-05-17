@@ -317,27 +317,31 @@ Ruff clean and mypy clean for `dbt_scribe/catalog/coverage_engine.py`.
 
 ---
 
-### Step 14 — Terminal reporter `step/14-terminal-reporter`
+### Step 14 — Terminal reporter `step/14-terminal-reporter` ✅
 
 Rich table output. Refactors existing `coverage.py` into this module.
 
-- [ ] `dbt_scribe/catalog/reporters/__init__.py`
-- [ ] `dbt_scribe/catalog/reporters/terminal_reporter.py`
+- [x] `dbt_scribe/catalog/reporters/__init__.py`
+- [x] `dbt_scribe/catalog/reporters/terminal_reporter.py`
   - `render(result: CoverageResult, layer_filter: str | None = None) -> None`
   - Header: project name, model count, adapter
   - Per-layer section: layer name, model table, layer aggregate scores
-  - Per-model row: name, description status (✅/❌), col doc %, test %, score
+  - Per-model row: name, description status (✅/❌), col doc/test detail or %, score
   - Global summary table: doc score vs threshold, test score vs threshold, status
   - Colour coding: green (≥ threshold), amber (within 20 pts), red (> 20 pts below)
   - All colour signals supplemented with text/icons (WCAG AA)
-  - Compact mode when model count > 20 (hide column detail lists)
-- [ ] `dbt_scribe/coverage.py` — refactored to delegate to `terminal_reporter`
+  - Compact mode when model count > 20 (show percentages instead of X/Y detail)
+- [x] `dbt_scribe/coverage.py` — refactored to delegate to `terminal_reporter`
       (existing public API preserved for backward compat)
-- [ ] `tests/catalog/test_terminal_reporter.py`
+- [x] `tests/catalog/test_terminal_reporter.py`
   - Output contains project name and model names
   - Layer filter respected (only requested layer rendered)
   - Colour threshold logic tested (green/amber/red conditions)
   - Zero-model layer handled gracefully
+  - Compact mode active/inactive behavior covered
+
+**Validation:** 124 pytest tests passing. Terminal reporter tests: 10 passing.
+Ruff clean and format clean for reporter, coverage facade, and reporter tests.
 
 ---
 

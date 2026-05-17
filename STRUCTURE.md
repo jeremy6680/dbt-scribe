@@ -58,7 +58,10 @@ dbt-scribe/
 │   ├── catalog/
 │   │   ├── __init__.py
 │   │   ├── catalog_parser.py           # Parses optional target/catalog.json into typed model/column metadata
-│   │   └── coverage_engine.py          # Pure coverage computation over manifest + catalog + YAML state
+│   │   ├── coverage_engine.py          # Pure coverage computation over manifest + catalog + YAML state
+│   │   └── reporters/
+│   │       ├── __init__.py
+│   │       └── terminal_reporter.py    # Rich terminal rendering for CoverageResult
 │   │
 │   └── prompts/                        # Jinja2 prompt templates — one per layer × generation type
 │       ├── docs_staging.j2             # Docs prompt for staging models
@@ -91,7 +94,8 @@ dbt-scribe/
 │   ├── catalog/
 │   │   ├── __init__.py
 │   │   ├── test_catalog_parser.py      # Optional catalog.json parser coverage
-│   │   └── test_coverage_engine.py     # Pure coverage engine aggregation and edge cases
+│   │   ├── test_coverage_engine.py     # Pure coverage engine aggregation and edge cases
+│   │   └── test_terminal_reporter.py   # Rich terminal reporter output, filters, colours, compact mode
 │   ├── test_manifest_parser.py
 │   ├── test_yaml_parser.py
 │   ├── test_analyzer.py
@@ -182,6 +186,25 @@ with `model.` are included, matching manifest parser filtering. Column names are
 lowercased for consistent matching with manifest/YAML columns, while warehouse
 `type` and `comment` values are preserved as `CatalogColumn.data_type` and
 `CatalogColumn.comment`. Missing or null comments become empty strings.
+
+### `dbt_scribe/catalog/coverage_engine.py`
+
+Computes documentation and test coverage as pure data. It combines manifest model
+nodes, optional catalog columns, existing YAML documentation/tests, and configured
+thresholds into a `CoverageResult`.
+
+The engine does not render, call LLMs, or write files. It is the shared input for
+catalog reporters and future CI gating.
+
+### `dbt_scribe/catalog/reporters/terminal_reporter.py`
+
+Renders a `CoverageResult` to the terminal with Rich. Output includes a project
+header panel, one table per dbt layer, and a global documentation/test threshold
+summary.
+
+Colour-coded scores always include text or icons as well, so terminal output never
+relies on colour alone. For projects above 20 models, the reporter switches to a
+compact mode that shows percentages instead of per-model `X/Y` column details.
 
 ### `dbt_scribe/analyzer.py`
 
