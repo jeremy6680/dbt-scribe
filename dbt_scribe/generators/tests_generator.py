@@ -56,7 +56,7 @@ def generate_tests(
     return TestsResult(columns=columns)
 
 
-_VALID_TEST_CONFIG_KEYS = {"name", "arguments", "config", "test_name"}
+_VALID_TEST_CONFIG_KEYS = {"name", "arguments", "config", "test_name", "values"}
 
 
 def _sanitize_tests(tests: list[Any]) -> list[Any]:
