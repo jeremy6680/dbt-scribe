@@ -1,0 +1,114 @@
+{
+  "metadata": {
+    "dbt_schema_version": "https://schemas.getdbt.com/dbt/catalog/v1/catalog.json",
+    "dbt_version": "1.9.0",
+    "generated_at": "2026-05-07T12:01:00.000000Z",
+    "adapter_type": "bigquery"
+  },
+  "nodes": {
+    "model.fixture_project.stg_api_sports__fixtures": {
+      "unique_id": "model.fixture_project.stg_api_sports__fixtures",
+      "name": "stg_api_sports__fixtures",
+      "columns": {
+        "FIXTURE_ID": {
+          "name": "FIXTURE_ID",
+          "type": "INT64",
+          "comment": "Warehouse identifier for a fixture."
+        },
+        "fixture_status": {
+          "name": "fixture_status",
+          "type": "STRING"
+        },
+        "ingested_at": {
+          "name": "ingested_at",
+          "type": "TIMESTAMP",
+          "comment": null
+        }
+      }
+    },
+    "model.fixture_project.int_fixtures_enriched_with_teams": {
+      "unique_id": "model.fixture_project.int_fixtures_enriched_with_teams",
+      "name": "int_fixtures_enriched_with_teams",
+      "columns": {
+        "fixture_id": {
+          "name": "fixture_id",
+          "type": "INT64",
+          "comment": "Warehouse identifier for a fixture."
+        },
+        "home_team_name": {
+          "name": "home_team_name",
+          "type": "STRING"
+        },
+        "total_score": {
+          "name": "total_score",
+          "type": "INT64",
+          "comment": "Total points scored by both teams."
+        }
+      }
+    },
+    "model.fixture_project.fixtures": {
+      "unique_id": "model.fixture_project.fixtures",
+      "name": "fixtures",
+      "columns": {
+        "fixture_id": {
+          "name": "fixture_id",
+          "type": "INT64",
+          "comment": "Warehouse identifier for a fixture."
+        },
+        "fixture_date": {
+          "name": "fixture_date",
+          "type": "TIMESTAMP"
+        },
+        "is_finished": {
+          "name": "is_finished",
+          "type": "BOOLEAN",
+          "comment": "Whether the fixture has completed."
+        }
+      }
+    },
+    "model.fixture_project.stg_bq__orders": {
+      "unique_id": "model.fixture_project.stg_bq__orders",
+      "name": "stg_bq__orders",
+      "columns": {
+        "order_id": {
+          "name": "order_id",
+          "type": "STRING",
+          "comment": "Warehouse order identifier."
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "STRING"
+        },
+        "order_total": {
+          "name": "order_total",
+          "type": "FLOAT64",
+          "comment": "Total order value."
+        }
+      }
+    },
+    "seed.fixture_project.country_codes": {
+      "unique_id": "seed.fixture_project.country_codes",
+      "name": "country_codes",
+      "columns": {
+        "country_code": {
+          "name": "country_code",
+          "type": "STRING",
+          "comment": "ISO country code."
+        }
+      }
+    }
+  },
+  "sources": {
+    "source.fixture_project.api_sports.fixtures": {
+      "unique_id": "source.fixture_project.api_sports.fixtures",
+      "name": "fixtures",
+      "columns": {
+        "fixture_id": {
+          "name": "fixture_id",
+          "type": "INT64",
+          "comment": "Raw fixture identifier."
+        }
+      }
+    }
+  }
+}
