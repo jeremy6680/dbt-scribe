@@ -286,12 +286,12 @@ Ruff clean for `dbt_scribe/catalog/`, `tests/catalog/`, and touched generator fi
 
 ---
 
-### Step 13 — Coverage engine `step/13-coverage-engine`
+### Step 13 — Coverage engine `step/13-coverage-engine` ✅
 
 Core computation logic. Takes manifest nodes + optional catalog + YAML models
 and produces a typed `CoverageResult`.
 
-- [ ] `dbt_scribe/catalog/coverage_engine.py`
+- [x] `dbt_scribe/catalog/coverage_engine.py`
   - New dataclasses: `ColumnCoverage`, `ModelCoverage`, `LayerCoverage`,
     `CoverageResult`, `CoverageThresholds`
   - `compute_coverage(nodes, catalog, yaml_models, config) -> CoverageResult`
@@ -300,7 +300,7 @@ and produces a typed `CoverageResult`.
   - Test count: counts generic tests from existing YamlColumn.tests
   - Layer grouping: delegates to existing `detect_layer()`
   - Global scores: weighted average by column count across all models
-- [ ] `tests/catalog/test_coverage_engine.py`
+- [x] `tests/catalog/test_coverage_engine.py`
   - All models fully documented + tested → score = 100%
   - Model with no YAML → all columns count as undocumented
   - `catalog.json` present → catalog columns used for totals
@@ -309,8 +309,11 @@ and produces a typed `CoverageResult`.
   - Model with 0 columns → handled without ZeroDivisionError
   - Global score is weighted by column count (not simple average)
   - Per-layer aggregation is correct
+  - Threshold pass/fail, model doc percentage, empty node list, and
+    case-insensitive catalog merge are covered
 
-**Validation:** cumulative tests passing
+**Validation:** 114 pytest tests passing. Coverage engine tests: 12 passing.
+Ruff clean and mypy clean for `dbt_scribe/catalog/coverage_engine.py`.
 
 ---
 

@@ -53,7 +53,12 @@ dbt-scribe/
 │   │   ├── docs_writer.py              # Creates/appends to *__docs.md files
 │   │   └── singular_test_writer.py     # Writes SQL singular test files into tests/ (Phase 2)
 │   │
-│   ├── coverage.py                     # Computes and renders coverage report (doc + test %)
+│   ├── coverage.py                     # Legacy audit report entrypoint (doc + test %)
+│   │
+│   ├── catalog/
+│   │   ├── __init__.py
+│   │   ├── catalog_parser.py           # Parses optional target/catalog.json into typed model/column metadata
+│   │   └── coverage_engine.py          # Pure coverage computation over manifest + catalog + YAML state
 │   │
 │   └── prompts/                        # Jinja2 prompt templates — one per layer × generation type
 │       ├── docs_staging.j2             # Docs prompt for staging models
@@ -85,7 +90,8 @@ dbt-scribe/
 │   ├── test_bootstrap.py
 │   ├── catalog/
 │   │   ├── __init__.py
-│   │   └── test_catalog_parser.py      # Optional catalog.json parser coverage
+│   │   ├── test_catalog_parser.py      # Optional catalog.json parser coverage
+│   │   └── test_coverage_engine.py     # Pure coverage engine aggregation and edge cases
 │   ├── test_manifest_parser.py
 │   ├── test_yaml_parser.py
 │   ├── test_analyzer.py
