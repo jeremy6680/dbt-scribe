@@ -345,28 +345,32 @@ Ruff clean and format clean for reporter, coverage facade, and reporter tests.
 
 ---
 
-### Step 15 — HTML reporter `step/15-html-reporter`
+### Step 15 — HTML reporter `step/15-html-reporter` ✅
 
 Self-contained HTML report generated via Jinja2.
 
-- [ ] `dbt_scribe/templates/__init__.py` (or `templates/` as package data)
-- [ ] `dbt_scribe/templates/catalog_report.html.j2`
+- [x] `dbt_scribe/templates/__init__.py` (or `templates/` as package data)
+- [x] `dbt_scribe/templates/catalog_report.html.j2`
   - Inline CSS (no external framework)
   - Vanilla JS for expand/collapse only
   - Sections: header, global gauges, layer cards, model detail table, footer
   - Print stylesheet
   - WCAG 2.1 AA: semantic HTML, no colour-only signaling, sufficient contrast
-- [ ] `dbt_scribe/catalog/reporters/html_reporter.py`
+- [x] `dbt_scribe/catalog/reporters/html_reporter.py`
   - `render(result: CoverageResult, output_path: Path) -> None`
   - Creates parent directories if needed
   - Renders template with CoverageResult data
-- [ ] `pyproject.toml` — add `templates/` to `[tool.hatch.build.targets.wheel]`
-      package data (or equivalent for the build backend in use)
-- [ ] `tests/catalog/test_html_reporter.py`
+- [x] `pyproject.toml` — configure Hatch wheel package inclusion so the packaged
+      `templates/` directory is included in built distributions
+- [x] `tests/catalog/test_html_reporter.py`
   - File created at specified path
   - HTML contains project name, all model names, global scores
   - No external `src=` or `href=` pointing outside the file
   - Output path parent created automatically if missing
+
+**Validation:** 129 pytest tests passing. HTML reporter tests: 5 passing.
+Ruff clean for the HTML reporter and tests. Wheel build succeeds and includes
+`dbt_scribe/templates/catalog_report.html.j2`.
 
 ---
 

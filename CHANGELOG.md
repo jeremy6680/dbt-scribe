@@ -7,6 +7,17 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- Added a self-contained catalog HTML reporter backed by a packaged Jinja2 template.
+- Added HTML reporter tests covering file creation, automatic parent directory
+  creation, expected coverage content, semantic markup, and absence of external
+  assets.
+- Added wheel build configuration for the `dbt_scribe` package so templates are
+  included in built distributions.
+
 ## [0.1.1] — 2026-05-10
 
 ### Fixed

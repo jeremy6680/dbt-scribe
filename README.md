@@ -399,6 +399,10 @@ dbt-scribe/
 │   ├── parsers/
 │   │   ├── manifest_parser.py  # Reads target/manifest.json
 │   │   └── yaml_parser.py      # Reads existing .yml files
+│   ├── catalog/
+│   │   ├── catalog_parser.py   # Reads optional target/catalog.json
+│   │   ├── coverage_engine.py  # Computes CoverageResult coverage data
+│   │   └── reporters/          # Terminal and HTML catalog reporters
 │   ├── generators/
 │   │   ├── base_generator.py   # LLMProvider ABC + retry logic
 │   │   ├── providers/          # anthropic | openai | google
@@ -407,9 +411,10 @@ dbt-scribe/
 │   ├── writers/
 │   │   ├── yaml_writer.py      # Create from scratch or merge
 │   │   └── docs_writer.py      # Create or append *__docs.md
-│   └── prompts/                # Jinja2 prompt templates per layer
+│   ├── prompts/                # Jinja2 prompt templates per layer
+│   └── templates/              # Packaged report templates
 └── tests/
-└── fixtures/dbt_project/   # Minimal dbt project with pre-built manifest
+    └── fixtures/dbt_project/   # Minimal dbt project with pre-built manifest/catalog
 ```
 
 The test suite uses checked-in fixtures and mocked LLM providers — CI requires

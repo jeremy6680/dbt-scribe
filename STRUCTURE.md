@@ -31,9 +31,14 @@ dbt-scribe/
 │   │
 │   ├── catalog/
 │   │   ├── __init__.py
-│   │   └── catalog_parser.py           # Reads optional target/catalog.json → CatalogNode dict
+│   │   ├── catalog_parser.py           # Reads optional target/catalog.json → CatalogNode dict
 │   │                                   # CatalogNode + CatalogColumn dataclasses
 │   │                                   # Model nodes only; lowercases warehouse column names
+│   │   ├── coverage_engine.py          # Computes CoverageResult from manifest/catalog/YAML state
+│   │   └── reporters/
+│   │       ├── __init__.py
+│   │       ├── terminal_reporter.py    # Rich terminal rendering for CoverageResult
+│   │       └── html_reporter.py        # Self-contained HTML report rendering via Jinja2
 │   │
 │   ├── generators/
 │   │   ├── __init__.py
@@ -55,20 +60,16 @@ dbt-scribe/
 │   │
 │   ├── coverage.py                     # Legacy audit report entrypoint (doc + test %)
 │   │
-│   ├── catalog/
-│   │   ├── __init__.py
-│   │   ├── catalog_parser.py           # Parses optional target/catalog.json into typed model/column metadata
-│   │   ├── coverage_engine.py          # Pure coverage computation over manifest + catalog + YAML state
-│   │   └── reporters/
-│   │       ├── __init__.py
-│   │       └── terminal_reporter.py    # Rich terminal rendering for CoverageResult
+│   ├── prompts/                        # Jinja2 prompt templates — one per layer × generation type
+│   │   ├── docs_staging.j2             # Docs prompt for staging models
+│   │   ├── docs_intermediate.j2        # Docs prompt for intermediate models
+│   │   ├── docs_mart.j2                # Docs prompt for mart models (four-section template)
+│   │   ├── tests_generic.j2            # Generic tests prompt (all layers)
+│   │   └── tests_singular.j2           # Singular tests prompt (marts only — Phase 2)
 │   │
-│   └── prompts/                        # Jinja2 prompt templates — one per layer × generation type
-│       ├── docs_staging.j2             # Docs prompt for staging models
-│       ├── docs_intermediate.j2        # Docs prompt for intermediate models
-│       ├── docs_mart.j2                # Docs prompt for mart models (four-section template)
-│       ├── tests_generic.j2            # Generic tests prompt (all layers)
-│       └── tests_singular.j2           # Singular tests prompt (marts only — Phase 2)
+│   └── templates/
+│       ├── __init__.py
+│       └── catalog_report.html.j2      # Self-contained catalog HTML report template
 │
 ├── tests/                              # pytest test suite for dbt-scribe itself
 │   ├── fixtures/
@@ -95,7 +96,8 @@ dbt-scribe/
 │   │   ├── __init__.py
 │   │   ├── test_catalog_parser.py      # Optional catalog.json parser coverage
 │   │   ├── test_coverage_engine.py     # Pure coverage engine aggregation and edge cases
-│   │   └── test_terminal_reporter.py   # Rich terminal reporter output, filters, colours, compact mode
+│   │   ├── test_terminal_reporter.py   # Rich terminal reporter output, filters, colours, compact mode
+│   │   └── test_html_reporter.py       # HTML file output, self-contained assets, semantic markup
 │   ├── test_manifest_parser.py
 │   ├── test_yaml_parser.py
 │   ├── test_analyzer.py
@@ -205,6 +207,16 @@ summary.
 Colour-coded scores always include text or icons as well, so terminal output never
 relies on colour alone. For projects above 20 models, the reporter switches to a
 compact mode that shows percentages instead of per-model `X/Y` column details.
+
+### `dbt_scribe/catalog/reporters/html_reporter.py`
+
+Renders a `CoverageResult` to a single self-contained HTML file using the packaged
+Jinja2 template at `dbt_scribe/templates/catalog_report.html.j2`.
+
+The reporter creates missing parent directories for the output path, passes prepared
+metric view data into the template, and writes UTF-8 HTML. The generated report uses
+inline CSS, inline vanilla JavaScript for expand/collapse controls, semantic HTML
+landmarks and tables, and text/icon labels alongside colour-coded statuses.
 
 ### `dbt_scribe/analyzer.py`
 
