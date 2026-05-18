@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import click
 
 from dbt_scribe import __version__
-from dbt_scribe.analyzer import build_enriched_model
+from dbt_scribe.analyzer import Layer, build_enriched_model
+from dbt_scribe.catalog import ci_gate
+from dbt_scribe.catalog.catalog_parser import parse_catalog
+from dbt_scribe.catalog.coverage_engine import CoverageResult, compute_coverage
+from dbt_scribe.catalog.reporters import html_reporter, json_reporter, terminal_reporter
 from dbt_scribe.config import ConfigError, ScribeConfig, load_config, resolve_provider
 from dbt_scribe.generators.docs_generator import DocsResult, generate_docs
 from dbt_scribe.generators.tests_generator import TestsResult, generate_tests
 from dbt_scribe.parsers.manifest_parser import ManifestNode, parse_manifest
-from dbt_scribe.parsers.yaml_parser import is_description_set, parse_yaml
+from dbt_scribe.parsers.yaml_parser import YamlModel, parse_yaml
 from dbt_scribe.resolver import resolve_target
 from dbt_scribe.writers.docs_writer import write_docs_block
 from dbt_scribe.writers.yaml_writer import write_yaml
@@ -53,6 +58,12 @@ conventions:
 coverage:
   min_doc_coverage: 80
   min_test_coverage: 70
+  fail_on_threshold: false
+
+catalog:
+  report_path: target/dbt-scribe-catalog.html
+  open_after_generate: false
+  include_catalog: true
 """
 
 
@@ -176,22 +187,67 @@ def generate(target: str, dry_run: bool, force: bool) -> None:
 @click.option("--target", default="models/", help="File, directory, or project root to audit.")
 def audit(target: str) -> None:
     """Show documentation and test coverage report."""
-    config, nodes = _load_project(target, check_api_key=False)
-    click.echo("Audit summary")
-    for node in nodes:
-        model = _build_model(node, config)
-        total_columns = len(model.columns)
-        documented_columns = sum(
-            1 for column in model.columns.values() if is_description_set(column.description)
-        )
-        tested_columns = sum(1 for column in model.columns.values() if column.tests)
-        doc_coverage = _percentage(documented_columns, total_columns)
-        test_coverage = _percentage(tested_columns, total_columns)
-        click.echo(
-            f"- {model.name}: doc coverage {doc_coverage}% "
-            f"({documented_columns}/{total_columns}), test coverage {test_coverage}% "
-            f"({tested_columns}/{total_columns})"
-        )
+    _run_catalog(
+        target=target,
+        output="terminal",
+        report_path=None,
+        threshold_docs=None,
+        threshold_tests=None,
+        ci=False,
+        output_format="table",
+        layer=None,
+    )
+
+
+@cli.command()
+@click.option("--target", default="models/", help="File, directory, or project root to audit.")
+@click.option(
+    "--output",
+    "output",
+    type=click.Choice(["terminal", "html", "json"], case_sensitive=False),
+    default="terminal",
+    show_default=True,
+    help="Report output destination/format.",
+)
+@click.option(
+    "--report-path",
+    type=click.Path(path_type=Path, dir_okay=False),
+    default=None,
+    help="Path for --output html.",
+)
+@click.option("--threshold-docs", type=float, default=None, help="Override doc threshold.")
+@click.option("--threshold-tests", type=float, default=None, help="Override test threshold.")
+@click.option("--ci", is_flag=True, help="Exit with code 1 when thresholds fail.")
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["table", "json"], case_sensitive=False),
+    default="table",
+    show_default=True,
+    help="Backward-compatible output format alias.",
+)
+@click.option("--layer", default=None, help="Only include one layer: staging, intermediate, marts.")
+def catalog(
+    target: str,
+    output: str,
+    report_path: Path | None,
+    threshold_docs: float | None,
+    threshold_tests: float | None,
+    ci: bool,
+    output_format: str,
+    layer: str | None,
+) -> None:
+    """Generate documentation and test coverage reports."""
+    _run_catalog(
+        target=target,
+        output=output.lower(),
+        report_path=report_path,
+        threshold_docs=threshold_docs,
+        threshold_tests=threshold_tests,
+        ci=ci,
+        output_format=output_format.lower(),
+        layer=layer,
+    )
 
 
 def _load_project(
@@ -207,6 +263,111 @@ def _load_project(
     except (BootstrapError, ValueError, ConfigError) as exc:
         raise click.ClickException(str(exc)) from exc
     return config, nodes
+
+
+def _run_catalog(
+    *,
+    target: str,
+    output: str,
+    report_path: Path | None,
+    threshold_docs: float | None,
+    threshold_tests: float | None,
+    ci: bool,
+    output_format: str,
+    layer: str | None,
+) -> None:
+    config, nodes = _load_project(target, check_api_key=False)
+    config = _config_with_threshold_overrides(
+        config,
+        threshold_docs=threshold_docs,
+        threshold_tests=threshold_tests,
+    )
+    result = _compute_catalog_result(config, nodes, layer_filter=layer)
+    resolved_output = "json" if output_format == "json" else output
+
+    if resolved_output == "json":
+        click.echo(json_reporter.render(result), nl=False)
+    elif resolved_output == "html":
+        destination = report_path or Path(config.catalog.report_path)
+        html_reporter.render(result, destination)
+        click.echo(f"HTML report written to {destination}")
+    else:
+        terminal_reporter.render(result)
+
+    ci_mode = ci or config.coverage.fail_on_threshold
+    if ci_mode:
+        exit_code = ci_gate.check(result, ci_mode=True)
+        if exit_code:
+            click.echo(ci_gate.format_failure_message(result), err=True)
+        sys.exit(exit_code)
+
+
+def _config_with_threshold_overrides(
+    config: ScribeConfig,
+    *,
+    threshold_docs: float | None,
+    threshold_tests: float | None,
+) -> ScribeConfig:
+    if threshold_docs is None and threshold_tests is None:
+        return config
+
+    coverage_updates = {}
+    if threshold_docs is not None:
+        coverage_updates["min_doc_coverage"] = threshold_docs
+    if threshold_tests is not None:
+        coverage_updates["min_test_coverage"] = threshold_tests
+
+    return config.model_copy(
+        update={"coverage": config.coverage.model_copy(update=coverage_updates)}
+    )
+
+
+def _compute_catalog_result(
+    config: ScribeConfig,
+    nodes: list[ManifestNode],
+    *,
+    layer_filter: str | None,
+) -> CoverageResult:
+    catalog = (
+        parse_catalog(Path("target/catalog.json"))
+        if config.catalog.include_catalog
+        else None
+    )
+    yaml_models = _yaml_models_for_nodes(nodes, config)
+    result = compute_coverage(nodes, catalog, yaml_models, config)
+    return _filter_result_by_layer(result, layer_filter)
+
+
+def _yaml_models_for_nodes(
+    nodes: list[ManifestNode],
+    config: ScribeConfig,
+) -> dict[str, YamlModel | None]:
+    return {
+        node.name: parse_yaml(Path(config.model_root) / Path(node.path).with_suffix(".yml"))
+        for node in nodes
+    }
+
+
+def _filter_result_by_layer(result: CoverageResult, layer_filter: str | None) -> CoverageResult:
+    if layer_filter is None:
+        return result
+
+    layer = _layer_from_filter(layer_filter)
+    return CoverageResult(
+        generated_at=result.generated_at,
+        project_name=result.project_name,
+        adapter=result.adapter,
+        dbt_scribe_version=result.dbt_scribe_version,
+        thresholds=result.thresholds,
+        layers=[item for item in result.layers if item.layer is layer],
+    )
+
+
+def _layer_from_filter(layer_filter: str) -> Layer:
+    try:
+        return Layer(layer_filter.lower())
+    except ValueError:
+        return Layer.UNKNOWN
 
 
 def _read_model_root() -> str:
@@ -247,9 +408,3 @@ def _echo_status(command: str, model_name: str, dry_run: bool, changed: bool) ->
 def _echo_summary(command: str, nodes: list[ManifestNode], dry_run: bool) -> None:
     suffix = " (dry-run)" if dry_run else ""
     click.echo(f"Summary: {command} processed {len(nodes)} model(s){suffix}.")
-
-
-def _percentage(numerator: int, denominator: int) -> int:
-    if denominator == 0:
-        return 100
-    return round((numerator / denominator) * 100)

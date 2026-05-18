@@ -146,6 +146,6 @@ def test_audit_command_reports_coverage(tmp_path, monkeypatch):
         result = CliRunner().invoke(cli, ["audit", "--target", "models/staging"])
 
     assert result.exit_code == 0, result.output
-    assert "Audit summary" in result.output
+    assert "dbt-scribe catalog" in result.output
     assert "stg_api_sports__fixtures" in result.output
-    assert "doc coverage" in result.output
+    assert "Global Summary" in result.output

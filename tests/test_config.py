@@ -4,6 +4,7 @@ import pytest
 
 from dbt_scribe.config import (
     CacheConfig,
+    CatalogConfig,
     ConfigError,
     ConventionsConfig,
     CoverageConfig,
@@ -67,6 +68,21 @@ def test_docs_config_default_contact_settable():
     assert cfg.default_contact == "data@example.com"
 
 
+# ── CatalogConfig ────────────────────────────────────────────────────────────
+
+
+def test_catalog_config_defaults():
+    cfg = CatalogConfig()
+    assert cfg.report_path == "target/dbt-scribe-catalog.html"
+    assert cfg.open_after_generate is False
+    assert cfg.include_catalog is True
+
+
+def test_coverage_config_fail_on_threshold_defaults_false():
+    cfg = CoverageConfig()
+    assert cfg.fail_on_threshold is False
+
+
 # ── ScribeConfig defaults ────────────────────────────────────────────────────
 
 
@@ -78,6 +94,7 @@ def test_scribe_config_all_defaults(monkeypatch):
     assert isinstance(cfg.docs, DocsConfig)
     assert isinstance(cfg.tests, TestsConfig)
     assert isinstance(cfg.coverage, CoverageConfig)
+    assert isinstance(cfg.catalog, CatalogConfig)
     assert isinstance(cfg.conventions, ConventionsConfig)
     assert isinstance(cfg.cache, CacheConfig)
 

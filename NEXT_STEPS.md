@@ -419,11 +419,11 @@ branch coverage. Ruff clean for the CI gate and tests.
 
 ---
 
-### Step 18 — Wire up CLI `step/18-catalog-cli`
+### Step 18 — Wire up CLI `step/18-catalog-cli` ✅
 
 Wire all new modules into the Click CLI. Make `audit` a backward-compatible alias.
 
-- [ ] `dbt_scribe/cli.py`
+- [x] `dbt_scribe/cli.py`
   - Add `catalog` command with all options:
     `--target`, `--output`, `--report-path`, `--threshold-docs`,
     `--threshold-tests`, `--ci`, `--format`, `--layer`
@@ -431,12 +431,12 @@ Wire all new modules into the Click CLI. Make `audit` a backward-compatible alia
     (identical behaviour to v0.1.x)
   - Use `sys.exit(ci_gate.check(...))` at end of command when `--ci`
     or `fail_on_threshold: true`
-- [ ] `dbt_scribe/config.py`
+- [x] `dbt_scribe/config.py`
   - Add `CatalogConfig` Pydantic model
     (`report_path`, `open_after_generate`, `include_catalog`)
   - `CoverageConfig.fail_on_threshold` — now enforced (was declared but ignored)
-- [ ] `dbt-scribe.yml` init template — add `catalog:` section with defaults
-- [ ] `tests/test_cli_catalog.py`
+- [x] `dbt-scribe.yml` init template — add `catalog:` section with defaults
+- [x] `tests/test_cli_catalog.py`
   - `catalog` command runs without error on fixture project
   - `audit` alias produces identical output to `catalog --output terminal`
   - `--ci` flag triggers exit code check
@@ -449,6 +449,9 @@ Wire all new modules into the Click CLI. Make `audit` a backward-compatible alia
   - `dbt-scribe catalog --ci` → verify exit code (should be 0 or 1 depending
     on actual project coverage)
   - `dbt-scribe audit` → identical to v0.1.x output
+
+**Validation:** Catalog CLI tests: 10 passing. Config tests: 22 passing.
+Ruff clean for CLI/config and catalog CLI tests.
 
 ---
 
