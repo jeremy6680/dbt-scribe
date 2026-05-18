@@ -17,6 +17,11 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   assets.
 - Added wheel build configuration for the `dbt_scribe` package so templates are
   included in built distributions.
+- Added a CDC §4.2 catalog JSON reporter with report metadata, thresholds, a global
+  score block, keyed layer aggregates, model details, and missing-column arrays.
+- Added JSON reporter tests for parseability, required top-level keys, ISO 8601
+  UTC `Z` timestamps, model count, missing-column lists, keyed layers, and threshold
+  pass/fail status.
 
 ## [0.1.1] — 2026-05-10
 

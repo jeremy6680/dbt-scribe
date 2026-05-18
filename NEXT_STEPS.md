@@ -374,21 +374,25 @@ Ruff clean for the HTML reporter and tests. Wheel build succeeds and includes
 
 ---
 
-### Step 16 — JSON reporter `step/16-json-reporter`
+### Step 16 — JSON reporter `step/16-json-reporter` ✅
 
 Machine-readable JSON output for CI pipelines and downstream tooling.
 
-- [ ] `dbt_scribe/catalog/reporters/json_reporter.py`
+- [x] `dbt_scribe/catalog/reporters/json_reporter.py`
   - `render(result: CoverageResult) -> str`
   - Serializes to the schema defined in CDC §4.2
   - `generated_at` as ISO 8601 string
   - `passed` field reflects threshold check result
-- [ ] `tests/catalog/test_json_reporter.py`
+- [x] `tests/catalog/test_json_reporter.py`
   - Valid JSON (parseable with `json.loads`)
   - All required top-level keys present
   - `generated_at` is ISO 8601
   - `models` array contains one entry per node
   - `undocumented_columns` and `untested_columns` are lists of strings
+
+**Validation:** JSON reporter tests: 8 passing. Coverage engine regression tests:
+12 passing. CDC §4.2 schema covered, including keyed layer object and UTC `Z`
+timestamp. Ruff clean for the JSON reporter and tests.
 
 ---
 

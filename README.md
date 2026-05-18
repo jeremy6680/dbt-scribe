@@ -402,7 +402,7 @@ dbt-scribe/
 │   ├── catalog/
 │   │   ├── catalog_parser.py   # Reads optional target/catalog.json
 │   │   ├── coverage_engine.py  # Computes CoverageResult coverage data
-│   │   └── reporters/          # Terminal and HTML catalog reporters
+│   │   └── reporters/          # Terminal, HTML, and JSON catalog reporters
 │   ├── generators/
 │   │   ├── base_generator.py   # LLMProvider ABC + retry logic
 │   │   ├── providers/          # anthropic | openai | google

@@ -38,7 +38,8 @@ dbt-scribe/
 │   │   └── reporters/
 │   │       ├── __init__.py
 │   │       ├── terminal_reporter.py    # Rich terminal rendering for CoverageResult
-│   │       └── html_reporter.py        # Self-contained HTML report rendering via Jinja2
+│   │       ├── html_reporter.py        # Self-contained HTML report rendering via Jinja2
+│   │       └── json_reporter.py        # Machine-readable JSON rendering for CoverageResult
 │   │
 │   ├── generators/
 │   │   ├── __init__.py
@@ -97,7 +98,8 @@ dbt-scribe/
 │   │   ├── test_catalog_parser.py      # Optional catalog.json parser coverage
 │   │   ├── test_coverage_engine.py     # Pure coverage engine aggregation and edge cases
 │   │   ├── test_terminal_reporter.py   # Rich terminal reporter output, filters, colours, compact mode
-│   │   └── test_html_reporter.py       # HTML file output, self-contained assets, semantic markup
+│   │   ├── test_html_reporter.py       # HTML file output, self-contained assets, semantic markup
+│   │   └── test_json_reporter.py       # JSON schema, ISO timestamps, model/missing-column arrays
 │   ├── test_manifest_parser.py
 │   ├── test_yaml_parser.py
 │   ├── test_analyzer.py
@@ -217,6 +219,13 @@ The reporter creates missing parent directories for the output path, passes prep
 metric view data into the template, and writes UTF-8 HTML. The generated report uses
 inline CSS, inline vanilla JavaScript for expand/collapse controls, semantic HTML
 landmarks and tables, and text/icon labels alongside colour-coded statuses.
+
+### `dbt_scribe/catalog/reporters/json_reporter.py`
+
+Renders a `CoverageResult` to pretty-printed JSON for CI pipelines and downstream
+tools. The payload follows CDC §4.2: report metadata, configured thresholds, a
+`global` score block with `passed`, layer aggregates keyed by layer name, model-level
+coverage, and explicit `undocumented_columns` / `untested_columns` string arrays.
 
 ### `dbt_scribe/analyzer.py`
 
