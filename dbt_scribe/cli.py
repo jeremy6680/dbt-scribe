@@ -6,7 +6,7 @@ from pathlib import Path
 import click
 
 from dbt_scribe import __version__
-from dbt_scribe.analyzer import Layer, build_enriched_model
+from dbt_scribe.analyzer import EnrichedModel, Layer, build_enriched_model
 from dbt_scribe.catalog import ci_gate
 from dbt_scribe.catalog.catalog_parser import parse_catalog
 from dbt_scribe.catalog.coverage_engine import CoverageResult, compute_coverage
@@ -15,7 +15,7 @@ from dbt_scribe.config import ConfigError, ScribeConfig, load_config, resolve_pr
 from dbt_scribe.generators.docs_generator import DocsResult, generate_docs
 from dbt_scribe.generators.tests_generator import TestsResult, generate_tests
 from dbt_scribe.parsers.manifest_parser import ManifestNode, parse_manifest
-from dbt_scribe.parsers.yaml_parser import YamlModel, parse_yaml
+from dbt_scribe.parsers.yaml_parser import YamlModel, YamlSource, find_yaml_source
 from dbt_scribe.resolver import resolve_target
 from dbt_scribe.writers.docs_writer import write_docs_block
 from dbt_scribe.writers.yaml_writer import write_yaml
@@ -120,7 +120,7 @@ def docs(target: str, dry_run: bool, force: bool) -> None:
     config, nodes = _load_project(target)
     provider = resolve_provider(config)
     for node in nodes:
-        model = _build_model(node, config, overwrite_existing=force)
+        model, yaml_source = _build_model(node, config, overwrite_existing=force)
         docs_result = generate_docs(model, provider, config)
         yaml_result = write_yaml(
             model,
@@ -129,6 +129,7 @@ def docs(target: str, dry_run: bool, force: bool) -> None:
             config,
             dry_run,
             force=force,
+            source_path=yaml_source.path if yaml_source is not None else None,
         )
         docs_block_result = write_docs_block(model, docs_result, config, dry_run)
         _echo_status("docs", model.name, dry_run, yaml_result.changed or docs_block_result.changed)
@@ -144,15 +145,18 @@ def tests(target: str, dry_run: bool, force: bool) -> None:
     config, nodes = _load_project(target)
     provider = resolve_provider(config)
     for node in nodes:
-        model = _build_model(node, config, overwrite_existing=force)
+        model, yaml_source = _build_model(node, config, overwrite_existing=force)
         tests_result = generate_tests(model, provider, config)
         yaml_result = write_yaml(
             model,
-            DocsResult(model_description=model.description or "", docs_block_content="", columns={}),
+            DocsResult(
+                model_description=model.description or "", docs_block_content="", columns={}
+            ),
             tests_result,
             config,
             dry_run,
             force=force,
+            source_path=yaml_source.path if yaml_source is not None else None,
         )
         _echo_status("tests", model.name, dry_run, yaml_result.changed)
     _echo_summary("tests", nodes, dry_run)
@@ -167,7 +171,7 @@ def generate(target: str, dry_run: bool, force: bool) -> None:
     config, nodes = _load_project(target)
     provider = resolve_provider(config)
     for node in nodes:
-        model = _build_model(node, config, overwrite_existing=force)
+        model, yaml_source = _build_model(node, config, overwrite_existing=force)
         docs_result = generate_docs(model, provider, config)
         tests_result = generate_tests(model, provider, config)
         yaml_result = write_yaml(
@@ -177,9 +181,12 @@ def generate(target: str, dry_run: bool, force: bool) -> None:
             config,
             dry_run,
             force=force,
+            source_path=yaml_source.path if yaml_source is not None else None,
         )
         docs_block_result = write_docs_block(model, docs_result, config, dry_run)
-        _echo_status("generate", model.name, dry_run, yaml_result.changed or docs_block_result.changed)
+        _echo_status(
+            "generate", model.name, dry_run, yaml_result.changed or docs_block_result.changed
+        )
     _echo_summary("generate", nodes, dry_run)
 
 
@@ -259,7 +266,9 @@ def _load_project(
         _bootstrap()
         model_root = _read_model_root()
         config = load_config("dbt-scribe.yml", check_api_key=check_api_key, model_root=model_root)
-        nodes = resolve_target(target, parse_manifest("target/manifest.json"), model_root=model_root)
+        nodes = resolve_target(
+            target, parse_manifest("target/manifest.json"), model_root=model_root
+        )
     except (BootstrapError, ValueError, ConfigError) as exc:
         raise click.ClickException(str(exc)) from exc
     return config, nodes
@@ -328,11 +337,7 @@ def _compute_catalog_result(
     *,
     layer_filter: str | None,
 ) -> CoverageResult:
-    catalog = (
-        parse_catalog(Path("target/catalog.json"))
-        if config.catalog.include_catalog
-        else None
-    )
+    catalog = parse_catalog(Path("target/catalog.json")) if config.catalog.include_catalog else None
     yaml_models = _yaml_models_for_nodes(nodes, config)
     result = compute_coverage(nodes, catalog, yaml_models, config)
     return _filter_result_by_layer(result, layer_filter)
@@ -342,97 +347,23 @@ def _yaml_models_for_nodes(
     nodes: list[ManifestNode],
     config: ScribeConfig,
 ) -> dict[str, YamlModel | None]:
-    """Build a mapping of model name → YamlModel by scanning .yml files
-    in the model's directory and its ancestors up to model_root.
-
-    dbt projects often place a single shared YAML at the layer root
-    (e.g. intermediate/_intermediate__models.yml) while model .sql files
-    live in sub-directories (e.g. intermediate/books/int_books__unified.sql).
-    This implementation walks up the directory tree until a matching model
-    entry is found or model_root is reached.
-    """
-    model_root = Path(config.model_root).resolve()
-
-    # Cache: absolute directory path → list of all YamlModel entries found
-    # in .yml files directly inside that directory.
-    dir_cache: dict[Path, list[YamlModel]] = {}
-
-    def _models_in_dir(directory: Path) -> list[YamlModel]:
-        """Parse and cache all model entries from .yml files in one directory."""
-        key = directory.resolve()
-        if key in dir_cache:
-            return dir_cache[key]
-        parsed: list[YamlModel] = []
-        if key.is_dir():
-            for yml_file in sorted(key.glob("*.yml")):
-                parsed.extend(_parse_all_models_from_yaml(yml_file))
-        dir_cache[key] = parsed
-        return parsed
-
-    def _find_yaml_model(node_path: Path, name: str) -> YamlModel | None:
-        """Walk from the model's directory up to model_root looking for name."""
-        current = (model_root / node_path).parent.resolve()
-        while True:
-            match = next((m for m in _models_in_dir(current) if m.name == name), None)
-            if match is not None:
-                return match
-            # Stop after checking model_root itself.
-            if current == model_root.resolve():
-                break
-            parent = current.parent
-            # Safety: don't escape model_root.
-            if not str(current).startswith(str(model_root.resolve())):
-                break
-            current = parent
-        return None
-
-    return {node.name: _find_yaml_model(Path(node.path), node.name) for node in nodes}
-
-
-def _parse_all_models_from_yaml(yaml_path: Path) -> list[YamlModel]:
-    """Parse every model entry from a dbt YAML file.
-
-    The existing parse_yaml() helper returns only the first model in the file.
-    This function returns all of them, which is required for shared files like
-    _intermediate__models.yml that contain multiple model definitions.
-    """
-    import yaml as _yaml
-
-    from dbt_scribe.parsers.yaml_parser import YamlColumn, YamlModel, is_description_set  # noqa: F401
-
-    if not yaml_path.exists():
-        return []
-
-    try:
-        raw = _yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
-    except Exception:
-        return []
-
-    models_raw = raw.get("models") or []
-    result: list[YamlModel] = []
-
-    for model_raw in models_raw:
-        name = model_raw.get("name")
-        if not name:
-            continue
-        columns = {
-            col["name"]: YamlColumn(
-                name=col["name"],
-                description=col.get("description"),
-                tests=list(col.get("data_tests") or col.get("tests") or []),
+    """Build a mapping of model name to existing YAML model state."""
+    model_root = Path(config.model_root)
+    return {
+        node.name: (
+            source.model
+            if (
+                source := find_yaml_source(
+                    node.name,
+                    (model_root / Path(node.path)).parent,
+                    model_root,
+                )
             )
-            for col in model_raw.get("columns", [])
-            if col.get("name")
-        }
-        result.append(
-            YamlModel(
-                name=name,
-                description=model_raw.get("description"),
-                columns=columns,
-            )
+            is not None
+            else None
         )
-
-    return result
+        for node in nodes
+    }
 
 
 def _filter_result_by_layer(result: CoverageResult, layer_filter: str | None) -> CoverageResult:
@@ -458,10 +389,10 @@ def _layer_from_filter(layer_filter: str) -> Layer:
 
 
 def _read_model_root() -> str:
-    import yaml as _yaml
+    from ruamel.yaml import YAML
 
     try:
-        raw = _yaml.safe_load(Path("dbt_project.yml").read_text()) or {}
+        raw = YAML(typ="safe").load(Path("dbt_project.yml").read_text()) or {}
     except Exception:
         return "models"
     paths = raw.get("model-paths") or raw.get("source-paths")
@@ -475,15 +406,17 @@ def _build_model(
     config: ScribeConfig,
     *,
     overwrite_existing: bool = False,
-):
-    yaml_path = Path(config.model_root) / Path(node.path).with_suffix(".yml")
-    yaml_model = parse_yaml(yaml_path)
+) -> tuple[EnrichedModel, YamlSource | None]:
+    model_root = Path(config.model_root)
+    model_dir = (model_root / Path(node.path)).parent
+    yaml_source = find_yaml_source(node.name, model_dir, model_root)
+    yaml_model = yaml_source.model if yaml_source is not None else None
     return build_enriched_model(
         node,
         yaml_model,
         config,
         overwrite_existing=overwrite_existing,
-    )
+    ), yaml_source
 
 
 def _echo_status(command: str, model_name: str, dry_run: bool, changed: bool) -> None:

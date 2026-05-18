@@ -4,8 +4,11 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-import yaml
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from ruamel.yaml import YAML
+from ruamel.yaml.error import YAMLError
+
+_SAFE_YAML = YAML(typ="safe")
 
 if TYPE_CHECKING:
     from dbt_scribe.generators.base_generator import LLMProvider
@@ -147,8 +150,8 @@ def load_config(
             "Run 'dbt-scribe init' to generate a default dbt-scribe.yml."
         )
     try:
-        raw = yaml.safe_load(path.read_text())
-    except yaml.YAMLError as exc:
+        raw = _SAFE_YAML.load(path.read_text())
+    except YAMLError as exc:
         raise ConfigError(f"Failed to parse {path}: {exc}") from exc
 
     if not isinstance(raw, dict):
