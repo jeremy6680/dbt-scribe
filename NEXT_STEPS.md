@@ -4,7 +4,8 @@
 
 **Published package:** [`dbt-scribe` on PyPI](https://pypi.org/project/dbt-scribe/)
 **Latest stable version:** `0.1.1`
-**In development:** `0.2.0`
+**Release candidate:** `0.2.0`
+**Next development target:** `0.3.0`
 **Test project:** `/Users/jeremymarchandeau/Code/personal/learning/databird-dbt-exercices/exercice_bonus_module_3/`
 **`catalog.json` confirmed:** ✅ available at `target/catalog.json`
 
@@ -457,18 +458,22 @@ Ruff clean for CLI/config and catalog CLI tests.
 
 ### Step 19 — Documentation + release `step/19-release-v0.2.0`
 
-- [ ] `CHANGELOG.md` — add `[0.2.0]` section with full feature list
-- [ ] `README.md`
+- [x] `CHANGELOG.md` — add `[0.2.0]` section with full feature list
+- [x] `README.md`
   - Update commands table (add `catalog`, note `audit` is now an alias)
   - Add `catalog` section with examples and option reference
   - Add CI integration section (GitHub Actions snippet)
   - Update roadmap table
-- [ ] `CONTEXT.md` — update "What this project is" to include catalog command
-- [ ] `NEXT_STEPS.md` — mark v0.2.0 steps complete, add v0.3.0 skeleton
-- [ ] `STRUCTURE.md` — add `catalog/`, `reporters/`, `templates/` to repo tree
-- [ ] `DECISIONS.md` — confirm ADRs 017–020 are present (added before step/12)
+- [x] `CONTEXT.md` — update "What this project is" to include catalog command
+- [x] `NEXT_STEPS.md` — mark v0.2.0 steps complete, add v0.3.0 skeleton
+- [x] `STRUCTURE.md` — add `catalog/`, `reporters/`, `templates/` to repo tree
+- [x] `DECISIONS.md` — confirm ADRs 017–020 are present (added before step/12)
 - [ ] PyPI publish `v0.2.0`
 - [ ] GitHub release + tag `v0.2.0`
+
+**Validation:** local release preparation complete. v0.2.0 version metadata is set
+in `pyproject.toml` and `dbt_scribe/__init__.py`; publish and tag remain manual
+release actions.
 
 ---
 

@@ -7,29 +7,38 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [Unreleased]
+## [0.2.0] — 2026-05-18
 
 ### Added
 
-- Added a self-contained catalog HTML reporter backed by a packaged Jinja2 template.
-- Added HTML reporter tests covering file creation, automatic parent directory
-  creation, expected coverage content, semantic markup, and absence of external
-  assets.
-- Added wheel build configuration for the `dbt_scribe` package so templates are
-  included in built distributions.
-- Added a CDC §4.2 catalog JSON reporter with report metadata, thresholds, a global
-  score block, keyed layer aggregates, model details, and missing-column arrays.
-- Added JSON reporter tests for parseability, required top-level keys, ISO 8601
-  UTC `Z` timestamps, model count, missing-column lists, keyed layers, and threshold
-  pass/fail status.
+- Added `dbt-scribe catalog`, a read-only coverage command with terminal, HTML,
+  JSON, layer filtering, threshold overrides, and CI exit-code enforcement.
+- Added optional `target/catalog.json` parsing so warehouse-introspected columns can
+  supplement manifest columns, with graceful fallback when the file is absent.
+- Added a pure coverage engine with typed `CoverageResult`, layer aggregates,
+  weighted global scores, and threshold pass/fail status.
+- Added a Rich terminal catalog report with per-layer tables, global summary,
+  threshold colors, text/icon status labels, and compact mode for larger projects.
+- Added a self-contained catalog HTML report backed by a packaged Jinja2 template
+  with inline CSS and vanilla JavaScript only.
+- Added a CDC §4.2 catalog JSON report with metadata, thresholds, a global score
+  block, keyed layer aggregates, model details, and missing-column arrays.
 - Added a pure catalog CI gate that maps coverage threshold results to exit codes
   and formats clear threshold failure messages.
-- Added CI gate tests covering disabled CI mode, pass/fail combinations, failure
-  message contents, and 100% branch coverage.
-- Added the `dbt-scribe catalog` CLI with terminal, HTML, and JSON outputs, layer
-  filtering, threshold overrides, and CI exit-code enforcement.
-- Made `dbt-scribe audit` delegate to the new terminal catalog report.
 - Added catalog configuration defaults and enforced `coverage.fail_on_threshold`.
+- Added the `catalog` optional dependency extra for forward-compatible install
+  semantics.
+- Added fixture coverage for catalog parsing, coverage computation, terminal/HTML/JSON
+  reporters, CI gate behavior, and catalog CLI flows.
+
+### Changed
+
+- `dbt-scribe audit` now delegates to the terminal `catalog` report as a
+  backward-compatible alias.
+- Built wheels now explicitly include the `dbt_scribe` package and packaged HTML
+  templates.
+
+[0.2.0]: https://github.com/jeremy6680/dbt-scribe/compare/v0.1.1...v0.2.0
 
 ## [0.1.1] — 2026-05-10
 

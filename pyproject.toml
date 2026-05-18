@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dbt-scribe"
-version = "0.1.1"
+version = "0.2.0"
 description = "LLM-powered documentation and test generation for dbt Core projects"
 readme = "README.md"
 license = { text = "MIT" }
@@ -27,6 +27,7 @@ dependencies = [
 dbt-scribe = "dbt_scribe.cli:cli"
 
 [project.optional-dependencies]
+catalog = []
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",

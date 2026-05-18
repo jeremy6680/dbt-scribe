@@ -10,6 +10,7 @@
 `dbt-scribe` analyses your dbt project and uses an LLM (Anthropic Claude, OpenAI, or
 Google Gemini) to automatically generate model descriptions, column descriptions, and
 data tests — following your project's conventions, never overwriting what already exists.
+It also audits documentation and test coverage with `dbt-scribe catalog`.
 
 ---
 
@@ -168,10 +169,10 @@ Commit this file — it is part of your project.
 ### 4. Check current coverage
 
 ```bash
-dbt-scribe audit --target models/
+dbt-scribe catalog --target models/
 ```
 
-No LLM calls, nothing written. Shows doc and test coverage per model.
+No LLM calls, nothing written. Shows documentation and test coverage by layer.
 
 ### 5. Preview generation (dry run)
 
@@ -199,15 +200,25 @@ dbt-scribe generate --target models/
 All commands must be run from the **root of your dbt project**
 (the directory containing `dbt_project.yml`).
 
+| Command | Purpose |
+| --- | --- |
+| `dbt-scribe init` | Create `dbt-scribe.yml` |
+| `dbt-scribe docs` | Generate documentation only |
+| `dbt-scribe tests` | Generate tests only |
+| `dbt-scribe generate` | Generate docs and tests together |
+| `dbt-scribe catalog` | Report documentation/test coverage in terminal, HTML, or JSON |
+| `dbt-scribe audit` | Backward-compatible alias for the terminal catalog report |
+
 ### `dbt-scribe init`
 
 Generates a `dbt-scribe.yml` configuration file at the project root.
 
 ```bash
-dbt-scribe init [--force]
+dbt-scribe init
 ```
 
-`--force` overwrites an existing `dbt-scribe.yml`.
+If `dbt-scribe.yml` already exists, edit it directly or remove it before running
+`init` again.
 
 ---
 
@@ -256,23 +267,59 @@ dbt-scribe generate --target <path> [--dry-run] [--force]
 
 ---
 
+### `dbt-scribe catalog`
+
+Reports documentation and test coverage across a dbt project. No generation,
+no LLM calls, and no model files are written.
+
+```bash
+dbt-scribe catalog --target <path>
+```
+
+Common examples:
+
+```bash
+# Terminal report
+dbt-scribe catalog --target models/
+
+# Self-contained HTML report
+dbt-scribe catalog --output html --report-path target/dbt-scribe-catalog.html
+
+# Machine-readable JSON matching the catalog schema
+dbt-scribe catalog --output json
+
+# Filter to one layer
+dbt-scribe catalog --layer staging
+
+# Fail CI when configured thresholds are not met
+dbt-scribe catalog --ci
+```
+
+Options:
+
+| Option | Description |
+| --- | --- |
+| `--target <path>` | File, directory, or project root to audit |
+| `--output terminal|html|json` | Select terminal, HTML file, or JSON stdout output |
+| `--report-path <file>` | Destination for `--output html` |
+| `--threshold-docs <pct>` | Override configured documentation threshold |
+| `--threshold-tests <pct>` | Override configured test threshold |
+| `--ci` | Return exit code 1 when thresholds fail |
+| `--format table|json` | Backward-compatible output format alias |
+| `--layer <name>` | Filter to `staging`, `intermediate`, or `marts` |
+
+For the most complete column totals, run `dbt docs generate` before `catalog` so
+`target/catalog.json` is available. If it is absent, `dbt-scribe` falls back to
+manifest columns.
+
+---
+
 ### `dbt-scribe audit`
 
-Reports documentation and test coverage per model. No generation, no LLM calls.
+Backward-compatible alias for the terminal catalog report.
 
 ```bash
 dbt-scribe audit --target <path>
-```
-
-Example output:
-
-```
-Audit summary
-
-stg_spotify__tracks:   doc coverage 100% (19/19), test coverage 0%   (0/19)
-stg_spotify__albums:   doc coverage  60%  (6/10), test coverage 0%   (0/10)
-int_music__unified:    doc coverage 100% (14/14), test coverage 0%  (0/14)
-mrt_music__collection: doc coverage 100% (13/13), test coverage 0%  (0/13)
 ```
 
 ---
@@ -285,35 +332,37 @@ Key settings:
 ```yaml
 llm:
   provider: anthropic # anthropic | openai | google
-  model: claude-sonnet-6
+  model: claude-sonnet-4-6
   temperature: 0.2 # Low for consistent, structured output
 
 docs:
-  language: en
   two_tier: true # Short desc in YAML, long desc in *__docs.md
   shared_columns: # These columns use shared docs blocks
-    - _loaded_at
     - created_at
-  mart_template: true # Enforce four-section template for mart docs
+    - updated_at
+    - _fivetran_synced
+  default_owner: "Data Team"
+  default_contact: ""
 
 tests:
-  named_tests: true # All generic tests use the name: key
-  pk_patterns: ["_id$", "^id$"]
-  enum_patterns: ["_status$", "_type$"]
+  pk_patterns: ["^.*_id$", "^id$"]
+  fk_patterns: ["^.*_fk$"]
+  enum_patterns: ["^.*_type$", "^.*_status$", "^.*_category$"]
 
 coverage:
-  min_doc_coverage: 80 # % threshold for audit / CI mode
+  min_doc_coverage: 80 # % threshold for catalog / CI mode
   min_test_coverage: 60
+  fail_on_threshold: false
+
+catalog:
+  report_path: target/dbt-scribe-catalog.html
+  open_after_generate: false
+  include_catalog: true
 
 conventions:
-  layers:
-    staging:
-      prefixes: ["stg_", "base_"]
-    intermediate:
-      prefixes: ["int_"]
-    marts:
-      prefixes: [] # No prefix — detected by exclusion
-        # Override if your project uses e.g. ["mrt_"]
+  staging_prefix: staging
+  intermediate_prefix: intermediate
+  marts_prefix: marts
 ```
 
 ---
@@ -331,6 +380,8 @@ conventions:
    are JSON for reliable parsing — one call per model, not per column
 6. **Writing** — creates `.yml` files from scratch or merges non-destructively into
    existing ones; creates or appends to `*__docs.md` files
+7. **Catalog** — reads manifest metadata, optional warehouse catalog metadata, and
+   existing YAML docs/tests to compute coverage reports without calling an LLM
 
 > **Why `manifest.json` and not the `.sql` files directly?**
 > dbt model files contain unresolved Jinja2 (`{{ ref('...') }}`, `{{ var('...') }}`,
@@ -365,16 +416,17 @@ Only the key for your configured provider is required.
 
 ## CI integration
 
-Use `dbt-scribe audit` in your pipeline to enforce documentation and test coverage
-thresholds. Set `fail_on_threshold: true` in `dbt-scribe.yml` to exit with code 1
-when thresholds are not met:
+Use `dbt-scribe catalog --ci` in your pipeline to enforce documentation and test
+coverage thresholds. You can also set `fail_on_threshold: true` in
+`dbt-scribe.yml` to make `catalog` fail automatically when thresholds are not met:
 
 ```yaml
 # .github/workflows/dbt-quality.yml
 - name: Check dbt documentation coverage
   run: |
     dbt compile
-    dbt-scribe audit --target models/ --ci
+    dbt docs generate
+    dbt-scribe catalog --target models/ --ci --output json
 ```
 
 ```yaml
@@ -383,6 +435,10 @@ coverage:
   min_doc_coverage: 80
   min_test_coverage: 60
   fail_on_threshold: true
+
+catalog:
+  report_path: target/dbt-scribe-catalog.html
+  include_catalog: true
 ```
 
 ---
@@ -428,8 +484,9 @@ no dbt installation, no warehouse connection, and no API keys.
 | Phase                     | Status      | Highlights                                                      |
 | ------------------------- | ----------- | --------------------------------------------------------------- |
 | Phase 1 — MVP             | ✅ Complete | `docs`, `tests`, `generate`, `audit` commands                   |
-| Phase 2 — Portfolio-ready | 🔄 Planned  | Singular SQL tests, LLM cache, `ruamel.yaml` migration, CI mode |
-| Phase 3 — Open source     | ✅ Complete | Published on PyPI, CHANGELOG, GitHub releases                   |
+| Phase 2 — Catalog         | ✅ Complete | `catalog` terminal/HTML/JSON reports and CI gate                |
+| Phase 3 — Quality         | 📋 Planned  | Test run history, trend monitoring, quality gate                |
+| Phase 3.x — Metadata      | 📋 Planned  | OpenMetadata integration                                        |
 
 ---
 
