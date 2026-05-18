@@ -72,8 +72,17 @@ class TestsConfig(BaseModel):
 class CoverageConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    min_doc_coverage: int = 80
-    min_test_coverage: int = 70
+    min_doc_coverage: float = 80
+    min_test_coverage: float = 70
+    fail_on_threshold: bool = False
+
+
+class CatalogConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    report_path: str = "target/dbt-scribe-catalog.html"
+    open_after_generate: bool = False
+    include_catalog: bool = True
 
 
 class ConventionsConfig(BaseModel):
@@ -99,6 +108,7 @@ class ScribeConfig(BaseModel):
     docs: DocsConfig = DocsConfig()
     tests: TestsConfig = TestsConfig()
     coverage: CoverageConfig = CoverageConfig()
+    catalog: CatalogConfig = CatalogConfig()
     conventions: ConventionsConfig = ConventionsConfig()
     cache: CacheConfig = CacheConfig()
     model_root: str = "models"
@@ -154,6 +164,7 @@ def load_config(
             config.docs = DocsConfig(**raw.get("docs", {}))
             config.tests = TestsConfig(**raw.get("tests", {}))
             config.coverage = CoverageConfig(**raw.get("coverage", {}))
+            config.catalog = CatalogConfig(**raw.get("catalog", {}))
             config.conventions = ConventionsConfig(**raw.get("conventions", {}))
             config.cache = CacheConfig(**raw.get("cache", {}))
     except (ValueError, TypeError) as exc:

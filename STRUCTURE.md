@@ -15,8 +15,8 @@ dbt-scribe/
 │
 ├── dbt_scribe/                         # Main Python package
 │   ├── __init__.py                     # Package version
-│   ├── cli.py                          # Click entry point — all commands + bootstrap validation
-│   ├── config.py                       # Pydantic models for dbt-scribe.yml + provider resolution
+│   ├── cli.py                          # Click entry point — commands, catalog reports, bootstrap validation
+│   ├── config.py                       # Pydantic models for dbt-scribe.yml + provider/report resolution
 │   ├── resolver.py                     # Resolves --target (file / dir / project) → list of nodes
 │   ├── analyzer.py                     # Layer/column typing + EnrichedModel/EnrichedColumn builder
 │   │
@@ -139,11 +139,12 @@ Entry point for all CLI commands. Responsibilities:
 - Defines the Click command group `dbt-scribe`
 - Runs the bootstrap check before every command except `init`
   (validates `dbt_project.yml`, `target/manifest.json`, `dbt-scribe.yml` in CWD)
-- Commands: `init`, `docs`, `tests`, `generate`, `audit`
+- Commands: `init`, `docs`, `tests`, `generate`, `catalog`, `audit`
 - Wires the main pipeline: config → manifest parsing → target resolution →
   YAML parsing → analyzer → generators → writers
 - Supports `--target`, `--dry-run`, and `--force` for generation commands
-- `audit` reports per-model documentation and test coverage without generation
+- `catalog` computes coverage and renders terminal, HTML, or JSON reports
+- `audit` is a backward-compatible alias for the terminal catalog report
 
 ### `dbt_scribe/resolver.py`
 

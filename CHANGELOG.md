@@ -26,6 +26,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and formats clear threshold failure messages.
 - Added CI gate tests covering disabled CI mode, pass/fail combinations, failure
   message contents, and 100% branch coverage.
+- Added the `dbt-scribe catalog` CLI with terminal, HTML, and JSON outputs, layer
+  filtering, threshold overrides, and CI exit-code enforcement.
+- Made `dbt-scribe audit` delegate to the new terminal catalog report.
+- Added catalog configuration defaults and enforced `coverage.fail_on_threshold`.
 
 ## [0.1.1] — 2026-05-10
 

@@ -392,7 +392,7 @@ coverage:
 ```
 dbt-scribe/
 ├── dbt_scribe/
-│   ├── cli.py                  # Click entry point — all commands
+│   ├── cli.py                  # Click entry point — all commands and catalog reports
 │   ├── config.py               # Pydantic config + provider resolution
 │   ├── resolver.py             # Resolves --target to a list of models
 │   ├── analyzer.py             # Layer detection + column type inference

@@ -95,9 +95,13 @@ def _render(result: CoverageResult, layer_filter: str | None = None) -> str:
         width=120,
         legacy_windows=False,
     )
+    original_console = terminal_reporter.Console
     terminal_reporter.Console = lambda: console  # type: ignore[method-assign]
 
-    terminal_reporter.render(result, layer_filter=layer_filter)
+    try:
+        terminal_reporter.render(result, layer_filter=layer_filter)
+    finally:
+        terminal_reporter.Console = original_console
 
     return output.getvalue()
 

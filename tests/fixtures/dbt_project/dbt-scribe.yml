@@ -33,3 +33,9 @@ conventions:
 coverage:
   min_doc_coverage: 80
   min_test_coverage: 70
+  fail_on_threshold: false
+
+catalog:
+  report_path: target/dbt-scribe-catalog.html
+  open_after_generate: false
+  include_catalog: true
