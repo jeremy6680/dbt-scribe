@@ -396,16 +396,16 @@ timestamp. Ruff clean for the JSON reporter and tests.
 
 ---
 
-### Step 17 — CI gate `step/17-ci-gate`
+### Step 17 — CI gate `step/17-ci-gate` ✅
 
 Exit code enforcement when thresholds are not met.
 
-- [ ] `dbt_scribe/catalog/ci_gate.py`
+- [x] `dbt_scribe/catalog/ci_gate.py`
   - `check(result: CoverageResult, ci_mode: bool) -> int`
     Returns 0 (pass) or 1 (fail). Does NOT call sys.exit() — caller decides.
   - `format_failure_message(result: CoverageResult) -> str`
     Human-readable summary: which threshold(s) failed, by how much.
-- [ ] `tests/catalog/test_ci_gate.py`
+- [x] `tests/catalog/test_ci_gate.py`
   - 100% branch coverage
   - ci_mode=False → always returns 0
   - ci_mode=True, all thresholds met → returns 0
@@ -413,6 +413,9 @@ Exit code enforcement when thresholds are not met.
   - ci_mode=True, test below threshold → returns 1
   - ci_mode=True, both below → returns 1
   - failure message contains threshold values and actual scores
+
+**Validation:** CI gate tests: 9 passing. `ci_gate.py` has 100% statement and
+branch coverage. Ruff clean for the CI gate and tests.
 
 ---
 

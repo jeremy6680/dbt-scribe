@@ -35,6 +35,7 @@ dbt-scribe/
 │   │                                   # CatalogNode + CatalogColumn dataclasses
 │   │                                   # Model nodes only; lowercases warehouse column names
 │   │   ├── coverage_engine.py          # Computes CoverageResult from manifest/catalog/YAML state
+│   │   ├── ci_gate.py                  # Pure CI exit-code decision and failure message formatting
 │   │   └── reporters/
 │   │       ├── __init__.py
 │   │       ├── terminal_reporter.py    # Rich terminal rendering for CoverageResult
@@ -97,6 +98,7 @@ dbt-scribe/
 │   │   ├── __init__.py
 │   │   ├── test_catalog_parser.py      # Optional catalog.json parser coverage
 │   │   ├── test_coverage_engine.py     # Pure coverage engine aggregation and edge cases
+│   │   ├── test_ci_gate.py             # CI exit-code behavior and failure messages
 │   │   ├── test_terminal_reporter.py   # Rich terminal reporter output, filters, colours, compact mode
 │   │   ├── test_html_reporter.py       # HTML file output, self-contained assets, semantic markup
 │   │   └── test_json_reporter.py       # JSON schema, ISO timestamps, model/missing-column arrays
@@ -199,6 +201,13 @@ thresholds into a `CoverageResult`.
 
 The engine does not render, call LLMs, or write files. It is the shared input for
 catalog reporters and future CI gating.
+
+### `dbt_scribe/catalog/ci_gate.py`
+
+Converts a `CoverageResult` into CI behavior without calling `sys.exit()`. The
+`check()` function returns the exit code that the CLI should use, while
+`format_failure_message()` builds a clear summary of failed documentation and/or
+test thresholds with actual scores, configured thresholds, and shortfalls.
 
 ### `dbt_scribe/catalog/reporters/terminal_reporter.py`
 

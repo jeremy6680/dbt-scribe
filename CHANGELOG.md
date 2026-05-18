@@ -22,6 +22,10 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added JSON reporter tests for parseability, required top-level keys, ISO 8601
   UTC `Z` timestamps, model count, missing-column lists, keyed layers, and threshold
   pass/fail status.
+- Added a pure catalog CI gate that maps coverage threshold results to exit codes
+  and formats clear threshold failure messages.
+- Added CI gate tests covering disabled CI mode, pass/fail combinations, failure
+  message contents, and 100% branch coverage.
 
 ## [0.1.1] — 2026-05-10
 
