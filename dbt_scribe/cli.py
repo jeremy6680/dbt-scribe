@@ -342,10 +342,97 @@ def _yaml_models_for_nodes(
     nodes: list[ManifestNode],
     config: ScribeConfig,
 ) -> dict[str, YamlModel | None]:
-    return {
-        node.name: parse_yaml(Path(config.model_root) / Path(node.path).with_suffix(".yml"))
-        for node in nodes
-    }
+    """Build a mapping of model name → YamlModel by scanning .yml files
+    in the model's directory and its ancestors up to model_root.
+
+    dbt projects often place a single shared YAML at the layer root
+    (e.g. intermediate/_intermediate__models.yml) while model .sql files
+    live in sub-directories (e.g. intermediate/books/int_books__unified.sql).
+    This implementation walks up the directory tree until a matching model
+    entry is found or model_root is reached.
+    """
+    model_root = Path(config.model_root).resolve()
+
+    # Cache: absolute directory path → list of all YamlModel entries found
+    # in .yml files directly inside that directory.
+    dir_cache: dict[Path, list[YamlModel]] = {}
+
+    def _models_in_dir(directory: Path) -> list[YamlModel]:
+        """Parse and cache all model entries from .yml files in one directory."""
+        key = directory.resolve()
+        if key in dir_cache:
+            return dir_cache[key]
+        parsed: list[YamlModel] = []
+        if key.is_dir():
+            for yml_file in sorted(key.glob("*.yml")):
+                parsed.extend(_parse_all_models_from_yaml(yml_file))
+        dir_cache[key] = parsed
+        return parsed
+
+    def _find_yaml_model(node_path: Path, name: str) -> YamlModel | None:
+        """Walk from the model's directory up to model_root looking for name."""
+        current = (model_root / node_path).parent.resolve()
+        while True:
+            match = next((m for m in _models_in_dir(current) if m.name == name), None)
+            if match is not None:
+                return match
+            # Stop after checking model_root itself.
+            if current == model_root.resolve():
+                break
+            parent = current.parent
+            # Safety: don't escape model_root.
+            if not str(current).startswith(str(model_root.resolve())):
+                break
+            current = parent
+        return None
+
+    return {node.name: _find_yaml_model(Path(node.path), node.name) for node in nodes}
+
+
+def _parse_all_models_from_yaml(yaml_path: Path) -> list[YamlModel]:
+    """Parse every model entry from a dbt YAML file.
+
+    The existing parse_yaml() helper returns only the first model in the file.
+    This function returns all of them, which is required for shared files like
+    _intermediate__models.yml that contain multiple model definitions.
+    """
+    import yaml as _yaml
+
+    from dbt_scribe.parsers.yaml_parser import YamlColumn, YamlModel, is_description_set  # noqa: F401
+
+    if not yaml_path.exists():
+        return []
+
+    try:
+        raw = _yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return []
+
+    models_raw = raw.get("models") or []
+    result: list[YamlModel] = []
+
+    for model_raw in models_raw:
+        name = model_raw.get("name")
+        if not name:
+            continue
+        columns = {
+            col["name"]: YamlColumn(
+                name=col["name"],
+                description=col.get("description"),
+                tests=list(col.get("data_tests") or col.get("tests") or []),
+            )
+            for col in model_raw.get("columns", [])
+            if col.get("name")
+        }
+        result.append(
+            YamlModel(
+                name=name,
+                description=model_raw.get("description"),
+                columns=columns,
+            )
+        )
+
+    return result
 
 
 def _filter_result_by_layer(result: CoverageResult, layer_filter: str | None) -> CoverageResult:
