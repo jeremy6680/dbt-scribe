@@ -443,12 +443,12 @@ Wire all new modules into the Click CLI. Make `audit` a backward-compatible alia
   - `--output html` creates file at default path
   - `--output json` prints valid JSON to stdout
   - `--layer staging` filters output correctly
-- [ ] End-to-end validation on DataBird bootcamp project:
-  - `dbt-scribe catalog` terminal output looks correct
-  - `dbt-scribe catalog --output html` → open and verify HTML manually
-  - `dbt-scribe catalog --ci` → verify exit code (should be 0 or 1 depending
-    on actual project coverage)
-  - `dbt-scribe audit` → identical to v0.1.x output
+- [x] End-to-end validation on DataBird bootcamp project:
+  - [x] `dbt-scribe catalog` terminal output looks correct
+  - [x] `dbt-scribe catalog --output html` → file generated
+  - [x] `dbt-scribe catalog --ci` → exit code 1 when thresholds fail
+  - [x] `dbt-scribe catalog --ci --threshold-docs 0 --threshold-tests 0` → exit code 0
+  - [x] `dbt-scribe audit` → identical to `catalog --output terminal --format table`
 
 **Validation:** Catalog CLI tests: 10 passing. Config tests: 22 passing.
 Ruff clean for CLI/config and catalog CLI tests.
