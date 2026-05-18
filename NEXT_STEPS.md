@@ -3,8 +3,7 @@
 ## Current phase: Phase 2 — v0.2.0 `dbt-scribe catalog`
 
 **Published package:** [`dbt-scribe` on PyPI](https://pypi.org/project/dbt-scribe/)
-**Latest stable version:** `0.1.1`
-**Release candidate:** `0.2.0`
+**Latest stable version:** `0.2.0`
 **Next development target:** `0.3.0`
 **Test project:** `/Users/jeremymarchandeau/Code/personal/learning/databird-dbt-exercices/exercice_bonus_module_3/`
 **`catalog.json` confirmed:** ✅ available at `target/catalog.json`
@@ -468,8 +467,8 @@ Ruff clean for CLI/config and catalog CLI tests.
 - [x] `NEXT_STEPS.md` — mark v0.2.0 steps complete, add v0.3.0 skeleton
 - [x] `STRUCTURE.md` — add `catalog/`, `reporters/`, `templates/` to repo tree
 - [x] `DECISIONS.md` — confirm ADRs 017–020 are present (added before step/12)
-- [ ] PyPI publish `v0.2.0`
-- [ ] GitHub release + tag `v0.2.0`
+- [x] PyPI publish `v0.2.0`
+- [x] GitHub release + tag `v0.2.0`
 
 **Validation:** local release preparation complete. v0.2.0 version metadata is set
 in `pyproject.toml` and `dbt_scribe/__init__.py`; publish and tag remain manual
