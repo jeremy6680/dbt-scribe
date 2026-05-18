@@ -9,8 +9,8 @@
   blocks in Markdown (`*__docs.md` files), following dbt's two-tier convention
 - **Tests** — named generic tests in YAML (`not_null`, `unique`, `accepted_values`,
   `relationships`) and singular SQL tests in `tests/`, inferred from column semantics
-- **Coverage audit** — documentation and test coverage report per model, with
-  HTML export and CI gate (v0.2.0+)
+- **Catalog coverage** — read-only documentation and test coverage reports via
+  `dbt-scribe catalog`, with terminal, HTML, JSON, layer filtering, and CI gate
 
 The tool is non-destructive by default: it only fills in what is missing and never
 overwrites existing descriptions or tests unless `--force` is explicitly passed.
@@ -94,7 +94,7 @@ dropped into any existing dbt project with minimal setup.
 | Version | Status               | Highlights                                            |
 | ------- | -------------------- | ----------------------------------------------------- |
 | v0.1.1  | ✅ Published on PyPI | `generate`, `docs`, `tests`, `audit` commands         |
-| v0.2.0  | 🔄 In development    | `catalog` command: HTML report, JSON output, CI gate  |
+| v0.2.0  | ✅ Release-ready      | `catalog` command: HTML report, JSON output, CI gate  |
 | v0.3.0  | 📋 Planned           | `quality` command: test run history, trend monitoring |
 | v0.3.x  | 📋 Planned           | OpenMetadata integration                              |
 
