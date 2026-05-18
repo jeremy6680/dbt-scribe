@@ -402,6 +402,7 @@ dbt-scribe/
 │   ├── catalog/
 │   │   ├── catalog_parser.py   # Reads optional target/catalog.json
 │   │   ├── coverage_engine.py  # Computes CoverageResult coverage data
+│   │   ├── ci_gate.py          # CI exit-code decision and failure messages
 │   │   └── reporters/          # Terminal, HTML, and JSON catalog reporters
 │   ├── generators/
 │   │   ├── base_generator.py   # LLMProvider ABC + retry logic
