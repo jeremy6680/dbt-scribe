@@ -3,6 +3,8 @@ from pathlib import Path
 from dbt_scribe.parsers.yaml_parser import (
     YamlColumn,
     YamlModel,
+    YamlSource,
+    find_yaml_source,
     is_description_set,
     parse_yaml,
 )
@@ -73,3 +75,105 @@ def test_is_description_set_true_for_inline_text():
 def test_is_description_set_true_for_doc_reference():
     assert is_description_set("{{ doc('fixture_id') }}") is True
     assert is_description_set('{{ doc("fixture_id") }}') is True
+
+
+def test_find_yaml_source_returns_same_level_shared_file(tmp_path):
+    model_root = tmp_path / "models"
+    model_dir = model_root / "intermediate"
+    model_dir.mkdir(parents=True)
+    shared_yaml = model_dir / "_intermediate__models.yml"
+    shared_yaml.write_text(
+        """\
+version: 2
+models:
+  - name: int_books__unified
+    description: Unified books.
+    columns:
+      - name: book_id
+        description: Book identifier.
+        data_tests:
+          - not_null
+  - name: int_authors__unified
+    description: Unified authors.
+""",
+        encoding="utf-8",
+    )
+
+    source = find_yaml_source("int_books__unified", model_dir, model_root)
+
+    assert source == YamlSource(
+        model=YamlModel(
+            name="int_books__unified",
+            description="Unified books.",
+            columns={
+                "book_id": YamlColumn(
+                    name="book_id",
+                    description="Book identifier.",
+                    tests=["not_null"],
+                )
+            },
+        ),
+        path=shared_yaml,
+    )
+
+
+def test_find_yaml_source_returns_parent_level_shared_file(tmp_path):
+    model_root = tmp_path / "models"
+    parent_dir = model_root / "intermediate"
+    model_dir = parent_dir / "books"
+    model_dir.mkdir(parents=True)
+    shared_yaml = parent_dir / "_intermediate__models.yml"
+    shared_yaml.write_text(
+        """\
+version: 2
+models:
+  - name: int_books__unified
+    description: Parent shared docs.
+""",
+        encoding="utf-8",
+    )
+
+    source = find_yaml_source("int_books__unified", model_dir, model_root)
+
+    assert source == YamlSource(
+        model=YamlModel(
+            name="int_books__unified",
+            description="Parent shared docs.",
+            columns={},
+        ),
+        path=shared_yaml,
+    )
+
+
+def test_find_yaml_source_returns_none_when_model_is_missing(tmp_path):
+    model_root = tmp_path / "models"
+    model_dir = model_root / "intermediate" / "books"
+    model_dir.mkdir(parents=True)
+    (model_dir / "schema.yml").write_text(
+        """\
+version: 2
+models:
+  - name: another_model
+""",
+        encoding="utf-8",
+    )
+
+    assert find_yaml_source("int_books__unified", model_dir, model_root) is None
+
+
+def test_find_yaml_source_stops_at_model_root(tmp_path):
+    model_root = tmp_path / "models"
+    model_dir = model_root / "intermediate" / "books"
+    model_dir.mkdir(parents=True)
+    outside_yaml = tmp_path / "schema.yml"
+    outside_yaml.write_text(
+        """\
+version: 2
+models:
+  - name: int_books__unified
+    description: Outside root.
+""",
+        encoding="utf-8",
+    )
+
+    assert find_yaml_source("int_books__unified", model_dir, model_root) is None

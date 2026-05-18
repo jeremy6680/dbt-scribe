@@ -1,16 +1,23 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
-import yaml
+from ruamel.yaml import YAML
+from ruamel.yaml.comments import CommentedMap
 
 from dbt_scribe.analyzer import EnrichedModel
 from dbt_scribe.config import ScribeConfig
 from dbt_scribe.generators.docs_generator import DocsResult
 from dbt_scribe.generators.tests_generator import TestsResult
 from dbt_scribe.parsers.yaml_parser import is_description_set
+
+_RUAMEL_YAML = YAML(typ="rt")
+_RUAMEL_YAML.indent(mapping=2, sequence=4, offset=2)
+_RUAMEL_YAML.default_flow_style = False
 
 
 @dataclass(frozen=True)
@@ -28,19 +35,22 @@ def write_yaml(
     dry_run: bool,
     *,
     force: bool = False,
+    source_path: Path | None = None,
 ) -> WriterResult:
-    path = _model_yaml_path(model, config.model_root)
+    path = (
+        source_path
+        if source_path is not None and source_path.exists()
+        else _model_yaml_path(model, config.model_root)
+    )
     data = _load_yaml(path)
     model_yaml = _find_or_create_model(data, model)
 
     _merge_model_description(model_yaml, docs_result, force=force)
     _merge_columns(model_yaml, model, docs_result, tests_result, force=force)
 
-    content = yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
-    content = content.replace(
-        "values: []\n",
-        "values: [] # TODO: fill with actual enum values from source system\n",
-    )
+    stream = StringIO()
+    _RUAMEL_YAML.dump(data, stream)
+    content = stream.getvalue()
     existing_content = path.read_text() if path.exists() else None
     changed = existing_content != content
     if not dry_run and changed:
@@ -56,7 +66,7 @@ def _model_yaml_path(model: EnrichedModel, model_root: str = "models") -> Path:
 def _load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {"version": 2, "models": []}
-    return yaml.safe_load(path.read_text()) or {"version": 2, "models": []}
+    return _RUAMEL_YAML.load(path.read_text()) or {"version": 2, "models": []}
 
 
 def _find_or_create_model(data: dict[str, Any], model: EnrichedModel) -> dict[str, Any]:
@@ -127,4 +137,27 @@ def _append_missing_tests(column_yaml: dict[str, Any], generated_tests: list[Any
     tests = column_yaml.setdefault("data_tests", [])
     for test in generated_tests:
         if test not in tests:
-            tests.append(test)
+            tests.append(_with_accepted_values_todo(test))
+
+
+def _with_accepted_values_todo(test: Any) -> Any:
+    copied_test = copy.deepcopy(test)
+    if not isinstance(copied_test, dict):
+        return copied_test
+
+    accepted_values = copied_test.get("accepted_values")
+    if not isinstance(accepted_values, dict):
+        return copied_test
+
+    arguments = accepted_values.get("arguments")
+    if not isinstance(arguments, dict) or arguments.get("values") != []:
+        return copied_test
+
+    if not isinstance(arguments, CommentedMap):
+        arguments = CommentedMap(arguments)
+        accepted_values["arguments"] = arguments
+    arguments.yaml_add_eol_comment(
+        "TODO: fill with actual enum values from source system",
+        key="values",
+    )
+    return copied_test
