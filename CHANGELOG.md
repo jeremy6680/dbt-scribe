@@ -7,6 +7,28 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.2.1] — 2026-05-19
+
+### Added
+
+- Shared YAML file support: `dbt-scribe docs`, `tests`, and `generate` now detect and
+  write back to shared YAML files (e.g. a single `models.yml` covering multiple models)
+  in addition to per-model YAML files.
+- Directory tree scan for shared YAML model files so models declared in any `.yml`
+  file under the project root are correctly located before writing.
+
+### Changed
+
+- YAML round-trips now use `ruamel.yaml` instead of PyYAML, preserving comments,
+  key order, and formatting in existing files (ADR-004 fully implemented).
+
+### Fixed
+
+- Write-back to shared YAML files was silently skipped; resolved in `yaml_writer.py`.
+- Coverage detection now correctly identifies models documented in shared YAML files.
+
+[0.2.1]: https://github.com/jeremy6680/dbt-scribe/compare/v0.2.0...v0.2.1
+
 ## [0.2.0] — 2026-05-18
 
 ### Added
