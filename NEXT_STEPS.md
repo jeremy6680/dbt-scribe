@@ -479,13 +479,26 @@ release actions.
 ## Backlog (deferred from v0.2.0)
 
 - `--fix` flag for `catalog`: chains `generate` on models below threshold → v0.2.1
-- `ruamel.yaml` migration (currently using `PyYAML` — see ADR-004) → Phase 2
-- Singular test generation for mart models → Phase 2
 - LLM response cache keyed on SHA-256(compiled_sql + config_fingerprint) — ADR-005
 - Manifest staleness warning (compare `generated_at` to model file mtimes)
 - `--project-dir` flag for CI workflows — ADR-011
+- Singular test generation for mart models → Phase 2
 - Diátaxis documentation (tutorial, how-to, reference pages)
 - Announce on dbt Slack `#tools-and-integrations`
+
+## v0.2.1 — Shared YAML support (done, pending release)
+
+- [x] `fix/shared-yaml-write-back` — merged
+  - `find_yaml_source()` walks directory tree to locate existing YAML declarations
+  - `write_yaml()` merges into shared files instead of creating per-model files
+  - Semantic snapshot diffing avoids false positives from formatting differences
+  - Test deduplication by type prevents duplicates when existing tests carry extra keys
+  - Docs block skipped when model already declared in a shared file
+  - Migrated to `ruamel.yaml` for round-trip formatting preservation (ADR-004)
+- [ ] Bump version to `0.2.1` in `pyproject.toml` and `dbt_scribe/__init__.py`
+- [ ] `CHANGELOG.md` — add `[0.2.1]` section
+- [ ] PyPI publish `v0.2.1`
+- [ ] GitHub release + tag `v0.2.1`
 
 ---
 

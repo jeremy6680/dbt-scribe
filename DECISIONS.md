@@ -463,3 +463,71 @@ test to fail during Step 12 full-suite validation.
 `{"accepted_values": {"name": "...", "arguments": {"values": [...]}}}`.
 Future normalization can convert legacy syntax to the canonical `arguments` form,
 but Step 12 keeps the fix minimal and backward-compatible.
+
+---
+
+## ADR-022 — ruamel.yaml for round-trip YAML serialisation
+
+**Date:** 2026-05-19
+**Status:** Accepted
+
+**Decision:** Migrate from PyYAML to `ruamel.yaml` (round-trip mode) for all YAML
+read/write operations in dbt-scribe.
+
+**Rationale:** PyYAML's `safe_dump` does not preserve comments, quote styles, or
+multi-line string formatting. This caused dbt-scribe to reformat hand-written or
+previously generated YAML files on every write, producing cosmetic diffs that
+triggered false `changed=True` results and corrupted user formatting.
+
+ruamel.yaml in `typ="rt"` (round-trip) mode preserves comments and formatting when
+loading and re-serialising existing files. New files are written with a clean
+`YAML()` instance for consistent, predictable output.
+
+**Constraint:** ruamel.yaml's round-trip is not perfectly transparent for all YAML
+constructs (e.g. manually formatted multi-line block sequences). Semantic change
+detection uses a JSON snapshot of the model entry before/after merge to avoid
+false positives regardless of serialisation differences.
+
+---
+
+## ADR-023 — Shared YAML file discovery via directory tree walk
+
+**Date:** 2026-05-19
+**Status:** Accepted
+
+**Decision:** `find_yaml_source()` locates the YAML file where a model is already
+declared by scanning all `.yml` files in the model's directory, then walking up
+ancestor directories until `model_root` is reached.
+
+**Rationale:** dbt projects commonly use one shared YAML file per layer
+(e.g. `intermediate/_intermediate__models.yml`) while model `.sql` files live in
+sub-directories (e.g. `intermediate/books/int_books__unified.sql`). The previous
+approach guessed a per-model filename which never matched shared files, causing
+`catalog` to report 0% coverage and `generate`/`docs`/`tests` to create duplicate
+per-model YAML files alongside the existing shared ones.
+
+**Consequence:** `write_yaml()` accepts a `source_path` parameter. When a shared
+file is found, the model entry is merged in-place and the file is rewritten only
+if the model entry semantically changed. When no existing file is found, a new
+per-model file is created as before (v0.1.x behaviour preserved for new projects).
+
+---
+
+## ADR-024 — Test deduplication by type, not by full dict equality
+
+**Date:** 2026-05-19
+**Status:** Accepted
+
+**Decision:** `_append_missing_tests` deduplicates generated tests against existing
+tests using the top-level test key (e.g. `accepted_values`, `not_null`) rather than
+full dict equality.
+
+**Rationale:** Existing tests in hand-written YAML often carry extra keys (`config`,
+`name`, `severity`) that the LLM does not generate. Full dict equality caused
+duplicates to be appended on every run because `{"accepted_values": {"arguments":
+{"values": [...]}}}` != `{"accepted_values": {"arguments": {"values": [...]},
+"config": {"where": "..."}, "name": "..."}}`.
+
+**Constraint:** One test per type per column. If a user has two `accepted_values`
+tests on the same column (unusual but valid in dbt), dbt-scribe will not add a
+second one. This is acceptable — the common case is one test per type.
