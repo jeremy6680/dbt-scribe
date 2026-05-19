@@ -17,7 +17,7 @@ from dbt_scribe.generators.tests_generator import TestsResult, generate_tests
 from dbt_scribe.parsers.manifest_parser import ManifestNode, parse_manifest
 from dbt_scribe.parsers.yaml_parser import YamlModel, YamlSource, find_yaml_source
 from dbt_scribe.resolver import resolve_target
-from dbt_scribe.writers.docs_writer import write_docs_block
+from dbt_scribe.writers.docs_writer import WriterResult, write_docs_block
 from dbt_scribe.writers.yaml_writer import write_yaml
 
 _REQUIRED_FILES = ["dbt_project.yml", "target/manifest.json", "dbt-scribe.yml"]
@@ -131,7 +131,14 @@ def docs(target: str, dry_run: bool, force: bool) -> None:
             force=force,
             source_path=yaml_source.path if yaml_source is not None else None,
         )
-        docs_block_result = write_docs_block(model, docs_result, config, dry_run)
+        # Only write a docs block for new per-model YAML files.
+        # Skip if the model is already declared in a shared file that does
+        # not use {{ doc("...") }} references — creating an orphan .md is pointless.
+        docs_block_result = (
+            write_docs_block(model, docs_result, config, dry_run)
+            if yaml_source is None
+            else WriterResult(path=Path(), changed=False)
+        )        
         _echo_status("docs", model.name, dry_run, yaml_result.changed or docs_block_result.changed)
     _echo_summary("docs", nodes, dry_run)
 
@@ -183,7 +190,14 @@ def generate(target: str, dry_run: bool, force: bool) -> None:
             force=force,
             source_path=yaml_source.path if yaml_source is not None else None,
         )
-        docs_block_result = write_docs_block(model, docs_result, config, dry_run)
+        # Only write a docs block when working with a new per-model YAML file.
+        # If the model is already declared in a shared file that does not use
+        # {{ doc("...") }} references, creating an orphan .md is pointless.
+        docs_block_result = (
+            write_docs_block(model, docs_result, config, dry_run)
+            if yaml_source is None
+            else WriterResult(path=Path(), changed=False)
+        )
         _echo_status(
             "generate", model.name, dry_run, yaml_result.changed or docs_block_result.changed
         )
